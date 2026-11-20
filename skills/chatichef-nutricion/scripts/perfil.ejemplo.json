@@ -1,0 +1,14 @@
+{
+  "_comentario": "Copia este archivo como perfil.json (junto al script) y cámbialo. 'prohibidos': ids de ingredientes que no se pueden usar. 'todos' vale para cualquier plato; añade una lista por comensal (el nombre que pondrás en 'para' de cada receta). 'liston': [kcal mínimas, kcal máximas, proteína mínima] por tipo de semana y turno. 'solo_mediodia': almidones que no quieres en la cena (arroz, pasta, legumbre, patata, pan, quinoa).",
+  "prohibidos": {
+    "todos": ["azucar", "miel"],
+    "ana": ["cilantro", "setas"],
+    "luis": ["pimiento-verde"]
+  },
+  "solo_mediodia": ["arroz", "pasta", "legumbre"],
+  "liston": {
+    "normal":      { "cena": [500, 550, 45], "comida": [500, 550, 45] },
+    "ligera":      { "cena": [350, 400, 40], "comida": [0, 470, 40] },
+    "cena_ligera": { "cena": [300, 350, 30] }
+  }
+}
