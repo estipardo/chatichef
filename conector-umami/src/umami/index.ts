@@ -13,9 +13,13 @@ export class Umami {
   readonly recipes: Recipes;
   readonly plans: MealPlans;
   readonly photos: Photos;
+  readonly store: Store;
+  readonly session: Session;
 
   constructor(session: Session, http: typeof fetch = webFetch) {
     const store = new Store(session, http);
+    this.store = store;
+    this.session = session;
     this.recipes = new Recipes(store, session);
     this.plans = new MealPlans(store, session, this.recipes);
     this.photos = new Photos(session, http);

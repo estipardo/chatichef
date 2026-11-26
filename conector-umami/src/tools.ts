@@ -3,6 +3,7 @@ import { z } from "zod";
 import { LIMITS } from "./umami/config.js";
 import { type Umami, UmamiError } from "./umami/index.js";
 import { MEALS } from "./umami/mealplans.js";
+import { probeGroceries } from "./probe.js";
 
 const text = z
   .string()
@@ -157,6 +158,15 @@ export function buildServer(umami: Umami): McpServer {
     "Deletes one entry from a meal plan (the recipe itself is kept). Get itemId from get_meal_plan_items.",
     { mealPlanId: plan, itemId: z.string().min(1) },
     (input) => umami.plans.remove(input),
+  );
+
+  // TEMPORAL: se quitará en cuanto se sepa cómo guarda Umami las listas de la compra.
+  tool(
+    "debug_probe_grocery_lists",
+    "TEMPORARY read-only probe",
+    "Temporary, read-only: looks for the Firestore collection where Umami keeps grocery lists.",
+    { extraCollections: z.array(z.string()).optional() },
+    ({ extraCollections }) => probeGroceries(umami.store, umami.session, extraCollections),
   );
 
   return server;
