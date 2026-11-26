@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Tablero ChatiChef</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,6 +102,11 @@ ol.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
 .wswitch{display:flex;gap:6px;flex-wrap:wrap}
 .wswitch button{flex:1;min-width:0;font-weight:600}
 .wswitch button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.wpick{display:flex;gap:6px;align-items:center}
+.wpick select{flex:1;min-width:0;font-weight:700;appearance:none;-webkit-appearance:none;padding-right:34px;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 55%,calc(100% - 12px) 55%;background-size:6px 6px;background-repeat:no-repeat}
+.wpick button{min-width:44px;padding:6px 0;font-size:1.1rem;line-height:1}
+.rs .wpick select,.rs .wpick button{min-height:0;padding-top:.35em;padding-bottom:.35em;font-size:.95em}
+.rs .wpick select{padding-left:.6em}
 /* Resumen: toda la semana en una pantalla de móvil, sin desplazarse */
 body.fit .wrap{height:100vh;height:100dvh;padding-block:10px calc(66px + env(safe-area-inset-bottom,0px));gap:6px;overflow:hidden}
 body.fit .upd{display:none}
@@ -225,7 +229,19 @@ function weeks(){if(!S.cfg)return[];const l=(Array.isArray(S.cfg.weeks)?S.cfg.we
 function weekMeals(w){w=w||week();return S.meals.filter(m=>m.week===w)}
 function liveMeals(){const ws=weeks();return S.meals.filter(m=>ws.includes(m.week))}
 function weekOfDate(iso){const ws=weeks();if(!ws.length)return null;const hit=ws.filter(w=>{const d=diffDays(iso,w);return d>=0&&d<=6});if(hit.length)return hit[hit.length-1];if(iso<ws[0])return ws[0];return ws[ws.length-1]}
-function selWeek(view){const ws=weeks();const cur=S.sel[view];if(cur&&ws.includes(cur))return cur;return view==="compra"?ws[ws.length-1]:weekOfDate(todayISO())}
+/* Todas las semanas con platos guardados (para el desplegable de Semana y Resumen), de la más reciente a la más antigua */
+function allWeeks(){return [...new Set(S.meals.map(m=>m.week).filter(Boolean).concat(weeks()))].sort().reverse()}
+const PICK_VIEWS=["semana","resumen"];
+function selWeek(view){const ws=PICK_VIEWS.includes(view)?allWeeks():weeks();const cur=S.sel[view];if(cur&&ws.includes(cur))return cur;return view==="compra"?weeks()[weeks().length-1]:weekOfDate(todayISO())}
+function weekPick(view){
+  const ws=allWeeks();if(!ws.length)return"";const sw=selWeek(view);const live=weeks();const i=ws.indexOf(sw);
+  const opt=w=>{const n=S.meals.filter(m=>m.week===w).length;const tag=w===(S.cfg&&S.cfg.week)?" · esta semana":(live.includes(w)?"":(w>(S.cfg&&S.cfg.week||"")?" · próxima":""));
+    return '<option value="'+w+'"'+(w===sw?" selected":"")+'>Semana del '+fmtDate(w)+tag+' · '+n+(n===1?" receta":" recetas")+'</option>'};
+  let h='<div class="wpick"><button type="button" data-act="stepWeek" data-view="'+view+'" data-week="'+(ws[i+1]||"")+'" aria-label="Semana anterior"'+(ws[i+1]?"":" disabled")+'>‹</button>';
+  h+='<select data-weekpick="'+view+'" aria-label="Elegir semana">'+ws.map(opt).join("")+'</select>';
+  h+='<button type="button" data-act="stepWeek" data-view="'+view+'" data-week="'+(ws[i-1]||"")+'" aria-label="Semana siguiente"'+(ws[i-1]?"":" disabled")+'>›</button></div>';
+  return h}
+function isPast(w){return !weeks().includes(w)&&w<(S.cfg&&S.cfg.week||"")}
 function weekSwitch(view){const ws=weeks();if(ws.length<2)return"";const sw=selWeek(view);return '<div class="wswitch" role="group" aria-label="Semana">'+ws.map(w=>'<button type="button" data-act="selWeek" data-view="'+view+'" data-week="'+w+'" aria-pressed="'+(w===sw)+'">Semana del '+fmtDate(w)+'</button>').join("")+'</div>'}
 const SLOT_ORDER={comida:0,cena:1,postre:2};
 function sortMeals(a,b){return (a.date||"9").localeCompare(b.date||"9")||(SLOT_ORDER[a.slot]??3)-(SLOT_ORDER[b.slot]??3)||(a.order||0)-(b.order||0)}
@@ -234,7 +250,7 @@ function expiry(item){
   if(!item.expires)return null;const d=diffDays(item.expires,todayISO());
   if(item.place==="congelador"){
     if(d>=0)return{cls:"",txt:"Hasta el "+fmtDate(item.expires)};
-    if(-d>183)return{cls:"warn",frozen:true,txt:"Fecha pasada hace "+Math.floor(-d/30)+" meses: revísalo"};
+    if(-d>60)return{cls:"warn",frozen:true,txt:"Fecha pasada hace "+Math.floor(-d/30)+" meses: revísalo"};
     return{cls:"",frozen:true,txt:"Fecha pasada · congelado, sin problema"};
   }
   if(d<0)return{cls:"bad",txt:"Caducado"};if(d===0)return{cls:"bad",txt:"Caduca hoy"};
@@ -299,9 +315,9 @@ function mealCard(m,opts){
         h+='<p class="small muted" style="margin:0">Pon 0 si al final no lo usaste. Se descuenta de la despensa.</p><div class="actions"><button class="primary" data-act="confirmDone" data-id="'+m.id+'">Guardar como hecha</button><button class="ghost" data-act="cancelDone">Cancelar</button></div></div>';
       }else{
         h+='<div class="actions"><button class="primary" data-act="openDone" data-id="'+m.id+'">Marcar como hecha</button>';
-        if(m.date){h+='<button data-act="push" data-id="'+m.id+'">Correr un día</button><button data-act="swap" data-id="'+m.id+'">Cambiar con mañana</button>'}
+        if(m.date&&!isPast(m.week)){h+='<button data-act="push" data-id="'+m.id+'">Correr un día</button><button data-act="swap" data-id="'+m.id+'">Cambiar con mañana</button>'}
         h+='</div>';
-        if(m.date)h+='<p class="small muted" style="margin:0">«Correr un día» mueve este plato y los siguientes del mismo turno. «Cambiar con mañana» lo intercambia con el de mañana.</p>';
+        if(m.date&&!isPast(m.week))h+='<p class="small muted" style="margin:0">«Correr un día» mueve este plato y los siguientes del mismo turno. «Cambiar con mañana» lo intercambia con el de mañana.</p>';
       }
     }else{
       h+='<div class="panel"><b>¿Qué tal salió?</b><div class="stars" role="group" aria-label="Nota">';
@@ -341,7 +357,8 @@ function viewSemana(){
   const sw=selWeek("semana");
   const ms=weekMeals(sw).filter(m=>m.slot!=="postre").sort(sortMeals);const today=todayISO();
   const days=[...new Set(ms.map(m=>m.date))];
-  let h=reqView()+weekSwitch("semana");
+  let h=reqView()+weekPick("semana");
+  if(isPast(sw))h+='<div class="notice small"><span>Semana pasada, para consultar. <button class="ghost" data-act="stepWeek" data-view="semana" data-week="'+esc(S.cfg.week)+'" style="min-height:0;padding:2px 8px">Volver a esta semana</button></span></div>';
   const sum=(S.cfg.summaries&&S.cfg.summaries[sw])||(sw===S.cfg.week?S.cfg.summary:"");
   if(sum)h+='<div class="notice small">'+esc(sum)+'</div>';
   days.forEach(d=>{h+='<div class="daygroup"><div class="dayhead'+(d===today?" today":"")+'"><h2>'+cap(dayName(d))+'</h2><span class="muted small">'+fmtDate(d)+(d===today?" · hoy":"")+'</span></div>'+ms.filter(m=>m.date===d).map(m=>mealCard(m)).join("")+'</div>'});
@@ -350,14 +367,54 @@ function viewSemana(){
   return (ms.length||ps.length)?h:h+noMenu();
 }
 
+/* Libre y reservado: cuánto de cada cosa de la Despensa ya tiene destino en platos sin hacer.
+   Sale de los ingredientes con inv (lo que el plato saca de casa) y de las líneas de compra con key y uses
+   (lo comprado para un plato que ya está en la Despensa). Se reparte primero en lo que caduca antes. */
+let RES={};
+function reservations(){
+  const ws=weeks();const cur=(S.cfg&&S.cfg.week)||"";const res={};
+  const add=(id,q,m)=>{if(!(q>0))return;const r=res[id]=res[id]||{q:0,meals:[]};r.q+=q;const f=r.meals.find(x=>x.m===m);if(f)f.q+=q;else r.meals.push({m,q})};
+  const pend=S.meals.filter(m=>m.status!=="done"&&(ws.includes(m.week)||m.week>cur));
+  const direct={};
+  pend.forEach(m=>(m.ingredients||[]).forEach(g=>{if(!g.inv||!(g.qty>0)||!invById(g.inv))return;add(g.inv,g.qty,m);(direct[m.id]=direct[m.id]||new Set()).add(g.inv)}));
+  const byKey={};
+  S.shop.filter(s=>s.key&&Array.isArray(s.uses)).forEach(s=>{const k=s.week+"|"+s.key;(byKey[k]=byKey[k]||[]).push(s)});
+  Object.values(byKey).forEach(ls=>{
+    const k=ls[0].key;const unit=(ls.find(s=>s.unit)||{}).unit||"ud";const per=(ls.find(s=>s.per)||{}).per||null;
+    const match=[...new Set(ls.flatMap(s=>s.match||[]))];const excl=[...new Set(ls.flatMap(s=>s.excl||[]))];
+    const docs=S.inv.filter(i=>i.qty>0&&(i.id===k||(match.some(t=>hasWord(i.name,t))&&!excl.some(t=>hasWord(i.name,t))))).sort((a,b)=>(a.expires||"9999").localeCompare(b.expires||"9999"));
+    if(!docs.length)return;
+    ls.forEach(s=>s.uses.forEach(u=>{
+      const m=pend.find(x=>x.id===u.m);if(!m)return;
+      if(docs.some(d=>direct[m.id]&&direct[m.id].has(d.id)))return; /* ya contado por su ingrediente */
+      let left=u.q||0;
+      for(const d of docs){if(left<=0)break;
+        const capU=toUnit(d.qty,d.unit,unit,per);if(capU==null)continue;
+        const usedU=res[d.id]?(toUnit(res[d.id].q,d.unit,unit,per)||0):0;
+        const take=Math.min(Math.max(0,capU-usedU),left);
+        if(take>0){add(d.id,toUnit(take,unit,d.unit,per),m);left-=take}}
+    }));
+  });
+  return res;
+}
+function mealTag(m){if(!m.date)return"Postre · "+(m.short||m.title);const [y,mo,da]=m.date.split("-").map(Number);const wd=new Date(Date.UTC(y,mo-1,da)).getUTCDay();return ["Do","Lu","Ma","Mi","Ju","Vi","Sá"][wd]+" "+da+" "+(m.slot||"")+" · "+(m.short||m.title)}
+function resInfo(i){
+  const r=RES[i.id];if(!r||i.qty==null)return null;
+  const free=Math.round((i.qty-r.q)*100)/100;
+  const chip=free<0?'<span class="chip bad">Falta ~'+esc(fmtQty(-free,i.unit))+' para los platos</span>':(free===0?'<span class="chip warn">Todo reservado</span>':'<span class="chip ok">Libre '+esc(fmtQty(free,i.unit))+' · reservado '+esc(fmtQty(r.q,i.unit))+'</span>');
+  const list='<div><h3>Reservado para</h3><ul class="moves">'+r.meals.slice().sort((a,b)=>sortMeals(a.m,b.m)).map(x=>"<li>"+esc(mealTag(x.m))+" · "+esc(fmtQty(x.q,i.unit))+"</li>").join("")+'</ul></div>';
+  return{chip,list,free};
+}
+
 function invItem(i){
   const key="i:"+i.id;const e=expiry(i);
   let h='<details class="inv" data-key="'+key+'"'+(open.has(key)?" open":"")+'><summary><span class="iname">'+esc(i.name)+'</span><span class="iqty'+(i.qty==null?" unknown":"")+'">'+esc(fmtQty(i.qty,i.unit))+'</span>';
-  const sub=[];if(e)sub.push('<span class="chip '+e.cls+'">'+esc(e.txt)+'</span>');if(i.opened)sub.push('<span class="chip">Abierto el '+fmtDate(i.opened)+'</span>');if(i.qty===0)sub.push('<span class="chip bad">Se ha acabado</span>');if(i.note)sub.push('<span class="small muted">'+esc(i.note)+'</span>');
+  const sub=[];if(e)sub.push('<span class="chip '+e.cls+'">'+esc(e.txt)+'</span>');if(i.opened)sub.push('<span class="chip">Abierto el '+fmtDate(i.opened)+'</span>');if(i.qty===0)sub.push('<span class="chip bad">Se ha acabado</span>');const ri=i.qty!==0?resInfo(i):null;if(ri)sub.push(ri.chip);if(i.note)sub.push('<span class="small muted">'+esc(i.note)+'</span>');
   if(sub.length)h+='<span class="isub">'+sub.join("")+'</span>';
   h+='</summary>';
+  if(!(S.canWrite&&S.db)&&ri)h+='<div class="iedit">'+ri.list+'</div>';
   if(S.canWrite&&S.db){
-    h+='<div class="iedit"><div class="field"><label for="nm-'+i.id+'">Nombre</label><input id="nm-'+i.id+'" type="text" value="'+esc(i.name||"")+'" placeholder="Merluza congelada (Lidl)"></div><div class="grid2"><div class="field"><label for="q-'+i.id+'">Cantidad ('+esc(i.unit||"ud")+')</label><input id="q-'+i.id+'" type="number" inputmode="decimal" min="0" step="any" value="'+(i.qty==null?"":esc(i.qty))+'"></div>';
+    h+='<div class="iedit">'+(ri?ri.list:"")+'<div class="field"><label for="nm-'+i.id+'">Nombre</label><input id="nm-'+i.id+'" type="text" value="'+esc(i.name||"")+'" placeholder="Merluza congelada (Lidl)"></div><div class="grid2"><div class="field"><label for="q-'+i.id+'">Cantidad ('+esc(i.unit||"ud")+')</label><input id="q-'+i.id+'" type="number" inputmode="decimal" min="0" step="any" value="'+(i.qty==null?"":esc(i.qty))+'"></div>';
     h+='<div class="field"><label for="x-'+i.id+'">Caduca</label><input id="x-'+i.id+'" type="date" value="'+esc(i.expires||"")+'">'+(i.expires?'<button type="button" class="ghost clr" data-act="clrDate" data-field="expires" data-id="'+i.id+'">Quitar fecha</button>':"")+'</div>';
     h+='<div class="field"><label for="p-'+i.id+'">Dónde</label><select id="p-'+i.id+'">'+PLACES.map(p=>'<option value="'+p[0]+'"'+(i.place===p[0]?" selected":"")+'>'+p[1]+'</option>').join("")+'</select></div>';
     h+='<div class="field"><label for="o-'+i.id+'">Abierto el</label><input id="o-'+i.id+'" type="date" value="'+esc(i.opened||"")+'">'+(i.opened?'<button type="button" class="ghost clr" data-act="clrDate" data-field="opened" data-id="'+i.id+'">Quitar fecha</button>':"")+'</div></div>';
@@ -372,6 +429,7 @@ function invItem(i){
 }
 
 function viewDespensa(){
+  RES=reservations();
   let h='';
   if(S.canWrite&&S.db){
     const key="add-inv";
@@ -383,6 +441,7 @@ function viewDespensa(){
     h+='<div class="field"><label for="ai-exp">Caduca</label><input id="ai-exp" type="date"></div></div>';
     h+='<div class="actions"><button class="primary" data-act="addInv">Añadir</button></div></div></details>';
   }
+  if(Object.keys(RES).length)h+='<p class="small muted" style="margin:0">«Libre» es lo que no necesita ningún plato sin hacer; «reservado», lo que ya tiene destino. Ábrelo para ver para qué plato es.</p>';
   if(!S.inv.length)return h+'<div class="empty">La despensa está vacía. Añade lo que tengas o díselo a Claude y lo carga.</div>';
   const known=PLACES.map(p=>p[0]);
   h+='<div class="places">';
@@ -411,7 +470,7 @@ function viewDespensa(){
   return h+'</div>';
 }
 
-function viewCompra(){
+function viewCompraOld(){
   if(!S.cfg)return noMenu();
   const csw=selWeek("compra");const items=S.shop.filter(s=>s.week===csw);
   const buy=items.filter(s=>s.kind!=="tengo");const have=items.filter(s=>s.kind==="tengo");
@@ -427,6 +486,91 @@ function viewCompra(){
   return h;
 }
 
+/* compra viva: la lista se recalcula con lo que hay en Despensa.
+   Solo afecta a líneas con key + uses (las cargadas con el menú de la semana). Campos de cada línea:
+   key (id de inventario o nombre corto), match (palabras para encontrarlo por nombre), excl (palabras que lo descartan),
+   unit (g, ml, ud, lata), per (g por unidad, para pasar de ud a g), uses ([{m:id del plato, q:cantidad}]). */
+function normTxt(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")}
+function hasWord(name,term){const t=normTxt(term).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return new RegExp("(^|[^a-z])"+t).test(normTxt(name))}
+const UDS=["ud","lata","bote","paquete"];
+function toUnit(q,from,to,per){
+  if(q==null)return null;from=from||"ud";if(from===to)return q;
+  if(UDS.includes(from)&&UDS.includes(to))return q;
+  if(per){if(from==="g"&&UDS.includes(to))return q/per;if(UDS.includes(from)&&to==="g")return q*per}
+  return null}
+function roundQ(q,u){if(UDS.includes(u))return Math.ceil(q-0.01);if(q>=100)return Math.round(q/10)*10;return Math.max(5,Math.round(q/5)*5)}
+function placeName(p){const f=PLACES.find(x=>x[0]===p);return f?f[1]:"Despensa 1"}
+function shopCalc(wk){
+  const lines=S.shop.filter(s=>s.week===wk&&s.key&&Array.isArray(s.uses));
+  if(!lines.length)return null;
+  const ws=weeks();const byKey={};
+  lines.forEach(s=>{(byKey[s.key]=byKey[s.key]||[]).push(s)});
+  const earlier=S.meals.filter(m=>m.status!=="done"&&ws.includes(m.week)&&m.week<wk);
+  const keys={};
+  Object.entries(byKey).forEach(([k,ls])=>{
+    const unit=(ls.find(s=>s.unit)||{}).unit||"ud";const per=(ls.find(s=>s.per)||{}).per||null;
+    const match=[...new Set(ls.flatMap(s=>s.match||[]))];const excl=[...new Set(ls.flatMap(s=>s.excl||[]))];
+    const docs=S.inv.filter(i=>i.id===k||(match.some(t=>hasWord(i.name,t))&&!excl.some(t=>hasWord(i.name,t))));
+    let stock=0;const got=[],odd=[],unknown=[];
+    docs.forEach(i=>{if(i.qty==null){unknown.push(i);return}const q=toUnit(i.qty,i.unit,unit,per);if(q==null){if(i.qty>0)odd.push(i);return}stock+=q;got.push(i)});
+    const ids=got.map(i=>i.id);
+    let other=0;const otherMeals=[];
+    earlier.forEach(m=>(m.ingredients||[]).forEach(g=>{if(!g.inv||!ids.includes(g.inv))return;const it=invById(g.inv);const q=toUnit(g.qty,it&&it.unit,unit,per);if(q>0){other+=q;if(!otherMeals.includes(m))otherMeals.push(m)}}));
+    let dem=0;
+    ls.forEach(s=>s.uses.forEach(u=>{const m=S.meals.find(x=>x.id===u.m);if(!m||m.status==="done")return;dem+=u.q||0}));
+    const avail=stock-other;
+    keys[k]={unit,stock,other,avail,dem,short:Math.max(0,dem-Math.max(0,avail)),got:got.filter(i=>i.qty>0),odd,unknown,otherMeals,lines:ls};
+  });
+  const past=S.meals.filter(m=>m.status!=="done"&&ws.includes(m.week)&&m.week<=wk&&m.date&&m.date<todayISO()&&(m.ingredients||[]).some(g=>g.inv)).sort(sortMeals);
+  return{keys,past};
+}
+function haveTxt(st){return st.got.map(i=>esc(i.name)+" "+esc(fmtQty(i.qty,i.unit))+" ("+esc(placeName(i.place))+")").join(", ")}
+function shopLi(s,extra,label){
+  return '<li><label><input type="checkbox" data-shop="'+s.id+'"'+(s.checked?" checked":"")+(S.canWrite&&S.db?"":" disabled")+'><span>'+(label||esc(s.text))+(s.store?' <span class="chip warn">'+esc(s.store)+'</span>':"")+(s.dest?' <span class="small muted">→ '+esc(s.dest)+'</span>':"")+(extra||"")+'</span></label></li>'}
+function viewCompra(){
+  if(!S.cfg)return noMenu();
+  const csw=selWeek("compra");const items=S.shop.filter(s=>s.week===csw);
+  const calc=shopCalc(csw);
+  const buy=[],covered=[],have=[];
+  items.forEach(s=>{
+    const st=calc&&s.key&&calc.keys[s.key];
+    if(!st){(s.kind==="tengo"?have:buy).push({s});return}
+    const hasBuy=st.lines.some(l=>l.kind!=="tengo");
+    if(s.kind!=="tengo"){
+      if(st.short<=0&&st.dem>0&&!s.checked)covered.push({s,st});
+      else if(st.dem<=0&&!s.checked&&s.uses.length)covered.push({s,st,gone:true});
+      else buy.push({s,st});
+    }else if(st.short>0&&!hasBuy)buy.push({s,st,short:true});
+    else have.push({s,st});
+  });
+  const done=buy.filter(x=>x.s.checked).length;
+  let h=weekSwitch("compra")+'<div class="row" style="justify-content:space-between"><span class="counter num">'+done+' de '+buy.length+' en el carro</span>';
+  if(S.canWrite&&S.db&&done)h+='<button class="ghost" data-act="uncheckAll">Desmarcar todo</button>';
+  h+='</div>';
+  if(calc){
+    h+='<p class="small muted" style="margin:0">La lista se ajusta sola a lo que apuntas en Despensa: si ya lo tienes en casa, sale de la lista; si te falta algo de lo que tenías, entra.'+(covered.length?' Ahora mismo, '+covered.length+(covered.length===1?' cosa ya la tienes.':' cosas ya las tienes.'):'')+'</p>';
+    if(calc.past.length){const names=calc.past.slice(0,4).map(m=>esc(m.short||m.title)+" ("+esc(dayName(m.date))+" "+Number(m.date.slice(8))+")");
+      h+='<div class="notice warn small"><b>'+calc.past.length+(calc.past.length===1?' plato de días pasados sigue':' platos de días pasados siguen')+' sin marcar como hecho'+(calc.past.length===1?'':'s')+'</b><span>'+names.join(", ")+(calc.past.length>4?' y '+(calc.past.length-4)+' más':'')+'. La lista cuenta con que todavía vas a gastar sus ingredientes. Márcalos como hechos (y si no usaste algo, pon 0) y la lista se ajusta.</span></div>'}
+  }
+  if(S.canWrite&&S.db)h+='<div class="row"><input id="add-shop" type="text" placeholder="Añadir a la compra" style="flex:1;min-width:0"><button data-act="addShop">Añadir</button></div>';
+  if(!buy.length)h+='<div class="empty">No hay nada que comprar esta semana.</div>';
+  const secOf=x=>x.short?"Te falta de lo que tenías":(x.s.section||"Otros");
+  const secs=[...new Set(buy.map(secOf))];
+  secs.forEach(sec=>{h+='<div class="shopsec"><h3>'+esc(sec)+'</h3><ul class="ings">'+buy.filter(x=>secOf(x)===sec).sort((a,b)=>(a.s.order||0)-(b.s.order||0)).map(x=>{
+    const s=x.s,st=x.st;let extra="",label="";
+    if(st){
+      const u=st.unit;
+      if(x.short)extra='<span class="small muted"> · en casa no llega'+(st.otherMeals.length?' (lo que hay lo gastan platos de antes)':'')+': compra ~'+esc(fmtQty(roundQ(st.short,u),u))+'</span>'
+      else if(st.avail>0&&st.short>0)extra='<span class="small muted"> · tienes ~'+esc(fmtQty(roundQ(st.avail,u),u))+', faltan ~'+esc(fmtQty(roundQ(st.short,u),u))+'</span>';
+      if(st.odd.length)extra+='<span class="small muted"> · en casa hay '+st.odd.map(i=>'«'+esc(i.name)+'» ('+esc(fmtQty(i.qty,i.unit))+')').join(", ")+': mira si te llega</span>';
+      if(st.unknown.length)extra+='<span class="small muted"> · '+st.unknown.map(i=>'«'+esc(i.name)+'»').join(", ")+' sin cantidad en Despensa</span>';
+    }
+    return shopLi(s,extra,label)}).join("")+'</ul></div>'});
+  if(covered.length)h+='<div class="shopsec"><h3>Ya lo tienes en casa · no lo compres</h3><ul class="ings">'+covered.map(x=>'<li style="padding:4px 0"><span class="chip ok">'+(x.gone?'Ya no hace falta':'Lo tienes')+'</span> <span class="muted">'+esc(x.s.text)+'</span>'+(x.gone?' <span class="small muted">· los platos que lo usaban ya están hechos</span>':(x.st.got.length?' <span class="small muted">· '+haveTxt(x.st)+'</span>':""))+'</li>').join("")+'</ul></div>';
+  if(have.length)h+='<div class="shopsec"><h3>Ya lo tengo · a dónde va</h3><ul class="ings">'+have.map(x=>'<li style="padding:4px 0">'+esc(x.s.text)+(x.s.dest?' <span class="small muted">→ '+esc(x.s.dest)+'</span>':"")+'</li>').join("")+'</ul></div>';
+  return h;
+}
+
 function nextMonday(){const t=todayISO();const [y,m,d]=t.split("-").map(Number);const wd=new Date(Date.UTC(y,m-1,d)).getUTCDay();return addDays(t,((8-wd)%7)||7)}
 function weekLoaded(wk){return weeks().includes(wk)||S.meals.some(m=>m.week===wk)}
 function targetWeek(){let wk=nextMonday();if(weekLoaded(wk))wk=addDays(wk,7);return wk}
@@ -439,7 +583,7 @@ function reqView(){
   const st=r&&ST[r.status];
   let h='<details class="inv" data-key="req"'+(open.has("req")?" open":"")+'><summary><span class="iname">Pedir a Claude el menú de la semana del '+fmtDate(wk)+'</span><span class="iqty">'+(st?'<span class="chip '+st[0]+'">'+st[1]+'</span>':"+")+'</span></summary><div class="iedit">';
   if(r){
-    if(r.status==="pending")h+='<p class="small" style="margin:0">Pedido el '+esc(fmtTime(r.requestedAt))+'. Claude mira los pedidos cada hora: en menos de una hora tendrás el menú aquí.</p>';
+    if(r.status==="pending")h+='<p class="small" style="margin:0">Pedido el '+esc(fmtTime(r.requestedAt))+'. Claude mira los pedidos cada hora: en menos de una hora tendrás el menú aquí (y un correo, si tienes avisos).</p>';
     else if(r.status==="working")h+='<p class="small" style="margin:0">Claude lo está montando'+(r.startedAt?' desde el '+esc(fmtTime(r.startedAt)):"")+'.</p>';
     else if(r.status==="done")h+='<p class="small" style="margin:0">Listo: ya está en el tablero. Revísalo y dile en el chat si te parece bien.</p>';
     else if(r.status==="error")h+='<p class="small" style="margin:0">No se ha podido montar'+(r.error?": "+esc(r.error):"")+'.</p>';
@@ -460,7 +604,7 @@ function viewResumen(){
   const ms=weekMeals(sw).filter(m=>m.slot!=="postre"&&m.date).sort(sortMeals);
   const ps=weekMeals(sw).filter(m=>m.slot==="postre").sort(sortMeals);
   const AB=["Do","Lu","Ma","Mi","Ju","Vi","Sá"];
-  let h='<div class="rs">'+weekSwitch("resumen");
+  let h='<div class="rs">'+weekPick("resumen");
   if(!ms.length)return h+noMenu()+'</div>';
   h+='<div class="rs-list">';let prev=null;
   ms.forEach(m=>{const same=m.date===prev;prev=m.date;const t=m.times||{};
@@ -562,12 +706,14 @@ document.addEventListener("toggle",e=>{const d=e.target;if(!(d instanceof HTMLDe
 document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.used){(S.used[t.dataset.used]=S.used[t.dataset.used]||{})[t.dataset.idx]=t.value}});
 document.addEventListener("change",async e=>{const t=e.target;
   if(t.dataset&&t.dataset.check){checks[t.dataset.check]=t.checked;if(!t.checked)delete checks[t.dataset.check];persist()}
+  if(t.dataset&&t.dataset.weekpick){S.sel[t.dataset.weekpick]=t.value;render();window.scrollTo(0,0);return}
   if(t.dataset&&t.dataset.shop){const id=t.dataset.shop;const ok=await w(()=>S.db.doc("shopping/"+id).update({checked:t.checked}));if(!ok)t.checked=!t.checked}
 });
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act,id=b.dataset.id;
   if(a==="tab"){S.tab=b.dataset.tab;persist();try{history.replaceState(null,"","#"+S.tab)}catch(_){}render();window.scrollTo(0,0);return}
   if(a==="selWeek"){S.sel[b.dataset.view]=b.dataset.week;render();return}
+  if(a==="stepWeek"){if(!b.dataset.week)return;S.sel[b.dataset.view]=b.dataset.week;render();window.scrollTo(0,0);return}
   if(a==="openMeal"){const m=S.meals.find(x=>x.id===id);if(!m)return;S.tab="semana";S.sel.semana=m.week;open.add("m:"+id);persist();try{history.replaceState(null,"","#semana")}catch(_){}render();const el=document.querySelector('[data-key="m:'+id+'"]');if(el)el.scrollIntoView({block:"start"});return}
   if(S.busy)return;
   if(a==="reqMenu"){const wk=b.dataset.week;const nt=document.getElementById("req-notes");const pc=document.getElementById("req-postres");

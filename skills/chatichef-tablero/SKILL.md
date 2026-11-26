@@ -14,7 +14,7 @@ Objetivo: que **el tablero refleje siempre el menú acordado, entero, y que nada
 - Artifact: slug `<SLUG-DE-TU-TABLERO>` · enlace fijo `<ENLACE-DE-TU-TABLERO>` (los ves al publicar `tablero/tablero.html` como artifact; ponlos aquí).
 - Herramientas: `db_get`, `db_list`, `db_query`, `db_write` del servidor de artifacts (cárgalas con ToolSearch si están diferidas).
 - **No** publiques otra versión de la página (`publish_version`, `publish_files`, `edit_version`) ni crees un artifact nuevo para el menú. El menú son **datos**: solo se escriben documentos. Si la página en sí necesita un cambio, es otra tarea: pregunta antes.
-- Colecciones: `config/current`, `meals`, `shopping`, `inventory`.
+- Colecciones: `config/current`, `meals`, `shopping`, `inventory`, `requests` (pedidos del botón «Pedir el menú») y `avisos` (avisos de caducidad ya enviados).
 - Semana = fecha del **lunes** en `AAAA-MM-DD` (`2026-11-16`), aunque la cobertura empiece otro día.
 - Fechas y horas: la zona horaria del usuario. `updatedAt` en ISO con la hora real del momento de escribir (`2026-11-15T22:45:00Z` o con desfase `+01:00`). Calcula fechas y días de la semana con código, no de cabeza.
 
@@ -32,12 +32,14 @@ Objetivo: que **el tablero refleje siempre el menú acordado, entero, y que nada
 1. `db_get config/current` → semana y versión actuales.
 2. `db_list inventory` con `limit: 1000` (si vuelve `nextCursor`, sigue paginando hasta el final). Es lo que hay **de verdad**:
    - `qty: null` = cantidad desconocida: **pregúntala** antes de repartir proteína.
-   - `expires`, `opened` y `note` deciden el orden de uso (primero lo abierto y descongelado). Una fecha pasada hace poco en el congelador no es problema; solo avisa si lleva más de ~6 meses o deja de ser seguro.
+   - `expires`, `opened` y `note` deciden el orden de uso (primero lo abierto y descongelado). En el congelador, una fecha pasada no es problema: solo cuenta si lleva más de 2 meses pasada.
+   - Lo que ya está **reservado** para platos sin hacer (ver «Libre y reservado») no está libre: no lo asignes dos veces.
    - `place`: `nevera`, `congelador`, `despensa` (se ve como «Despensa 1») o `despensa-2` («Despensa 2»). Al decir dónde está algo, usa el nombre que ve el usuario.
 3. `db_query meals` con `week == <semana actual>` → qué está hecho (`status: "done"` y `used`, lo que usó de verdad), qué se ha movido (`date` distinta de la del id y `movedFrom`) y qué queda pendiente.
 4. `db_query meals` con `status == "done"` → notas (`rating`, `comment`) para decidir repeticiones: repite las de 4–5 estrellas; no propongas las de 1–2 sin preguntar.
 5. Si hay platos movidos y usas avisos (ver las instrucciones del proyecto), reprográmalos al nuevo día.
 6. «Inventario actualizado» es la `updatedAt` más reciente de `inventory`. Si el inventario lleva días sin tocarse, pregunta antes de fiarte de él.
+7. Si existe el tablero de alimentos (`tablero/alimentos.html`), lee sus colecciones `alimentos` y `preguntas` contestadas: mandan sobre lo que recuerdes.
 
 Sigue preguntando lo que el tablero no sabe: comidas fuera, sobras que no estén en el inventario, si quiere postres.
 
@@ -58,6 +60,8 @@ Hazlo **solo cuando el usuario haya aceptado el menú** (o cuando atiendas un pe
 
 Id: `meals/2026-11-19-cena`, `meals/2026-11-21-comida`. Postres: `meals/<semana>-postre-1`, `-postre-2`… Si una receta se come dos días (segundo servicio), un documento por día.
 
+Al acabar una semana, quítala de `config/current.weeks` (update con `ifVersion`).
+
 ```
 {
   week: "2026-11-16",
@@ -67,6 +71,10 @@ Id: `meals/2026-11-19-cena`, `meals/2026-11-21-comida`. Postres: `meals/<semana>
   for: "para 2" | "para <nombre>",
   servings: 2,                          // 1 en una comida suelta de una persona; en postres, las raciones que salen
   title: "Pollo al chilindrón con patata",   // el mismo nombre que en Umami
+  short: "Pollo al chilindrón",         // ≤ ~45 caracteres, para la pestaña Resumen
+  protein: "carne" | "pescado" | "huevo" | "legumbre",   // color del borde en Resumen (pescado incluye marisco y atún)
+  badge: "Partido 21:00",               // opcional; en postres "Grande" o "Exprés"
+  yield: "8 vasitos · 4 días",          // solo en postres
   origin: "Parte del … El cambio: …",   // plato tradicional y qué lo hace saludable
   tag: "rapida" | "media" | "larga",    // [Al momento, <15 min] | [Media, 20–40 min] | [Larga]
   kcal: 415, prot: 42,                  // por ración, de chatichef-nutricion
@@ -96,13 +104,22 @@ Id: `meals/2026-11-19-cena`, `meals/2026-11-21-comida`. Postres: `meals/<semana>
 ```
 
 - `kind: "falta"` = lo que hay que comprar; `kind: "tengo"` = lo que ya tiene, con `dest` diciendo a dónde va cada cosa.
+- **Compra viva:** cada línea que sea un producto medible lleva además estos campos, y entonces la página ajusta sola la lista a lo que hay en Despensa (si ya está en casa, sale de la lista; si falta de lo que había, entra) y calcula qué está libre y qué reservado:
+  ```
+  key: "gambas",                       // id de inventory si existe; si no, un nombre corto
+  match: ["gamba","langostino"], excl: ["hamburguesa"],   // palabras sin tildes para encontrarlo por nombre en Despensa
+  unit: "g" | "ml" | "ud" | "lata", per: 250,             // per = g por unidad (opcional)
+  uses: [{m:"2026-11-25-cena", q:350}]  // plato de meals y cantidad en `unit`
+  ```
+  Varias líneas pueden compartir `key` (por ejemplo «1 docena de huevos» falta y «4 huevos» tengo): se suman sus `uses`, así que un mismo plato va en una sola de ellas. Las líneas que juntan varios productos («maicena, eritritol y levadura») van sin `key`.
 - `n` y `order` correlativos desde 1. Secciones habituales: Frutería, Carnicería, Pescadería, Charcutería, Congelados, Despensa, Nevera, Congelador.
 - Una línea por producto, con las unidades bien contadas (dos recetas con garbanzos de bote = 2 botes).
 
 ### `config/current` (update, al final)
 
 ```
-{ week: "2026-11-16", label: "Semana del 16 nov", version: "v1",
+{ week: "2026-11-16", weeks: ["2026-11-09","2026-11-16"],   // weeks: semanas visibles a la vez (la vieja hasta que acabe)
+  label: "Semana del 16 nov", version: "v1", summaries: { "2026-11-16": "…" },
   summary: "~5 h de reloj · ~1 h 55 de cuchillo · 8 de 9 recetas con menos de 15 min de cuchillo · horno 0 veces",
   updatedAt: "<ISO, hora real>" }
 ```
@@ -139,3 +156,15 @@ Lee primero el documento (`db_get`) para tener su `version`.
 2. `db_query meals` con `week == <semana>` → hay **exactamente** un documento por receta y día acordados (ni de más ni de menos), cada uno con `title`, `kcal`, `prot`, `times` y `steps`, y las fechas caen en el día de la semana correcto.
 3. `db_query shopping` con `week == <semana>` → número de líneas esperado y sin duplicados.
 4. Di en **una línea**: «Tablero: semana del 16 nov, v2 — 9 platos y 27 líneas de compra» con el enlace. Si algo no se ha podido escribir, dilo en esa misma línea con lo que falta.
+## 6. Libre y reservado (lo calcula la página)
+
+La pestaña Despensa enseña en cada producto «Libre X · reservado Y» y, al abrirlo, para qué platos está reservado. Sale de:
+
+- los ingredientes de `meals` sin hacer con `inv` (lo que el plato saca de casa), y
+- las líneas de compra con `key` y `uses` cuyo producto ya está en Despensa (lo comprado para un plato).
+
+Se reparte primero en lo que caduca antes. Por eso es importante rellenar bien `inv`, `qty`, `key` y `uses`: si faltan, la página no sabe que algo tiene destino.
+
+## 7. Avisos de caducidad
+
+Una tarea programada diaria (ver `docs/avisos.md`) lee `inventory` y manda un correo con lo que caduca en 2 días o menos (fuera del congelador) y con lo que lleva más de 2 meses pasado de fecha en el congelador. Apunta cada aviso enviado en `avisos/cad-<id>-<expires>` (o `avisos/cong-<id>-<expires>`) para no repetirlo. No toques esa colección a mano.
