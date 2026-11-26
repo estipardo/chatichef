@@ -1,6 +1,6 @@
 ---
 name: chatichef-guardar-umami
-description: "ChatiChef: úsala en cuanto el usuario confirme que está de acuerdo con las recetas (las de la semana o una suelta), y cada vez que cambie, mueva o quite una receta ya confirmada. Guarda cada receta en el recetario de Umami (sin crear duplicados) con su nombre, etiquetas, tiempos, kcal y notas, y la pone en el plan de comidas en la fecha y la franja exactas. Antes de que el usuario confirme no se guarda nada. Necesita el conector de conector-umami/."
+description: "ChatiChef: úsala en cuanto el usuario confirme que está de acuerdo con las recetas (las de la semana o una suelta), y cada vez que cambie, mueva o quite una receta ya confirmada. Guarda cada receta en el recetario de Umami (sin crear duplicados) con su nombre, etiquetas, tiempos, kcal y notas, la pone en el plan de comidas en la fecha y la franja exactas, y pasa la lista de la compra del tablero a una lista de la compra de Umami (y la mantiene al día). Antes de que el usuario confirme no se guarda nada. Necesita el conector de conector-umami/."
 ---
 
 # Guardar las recetas confirmadas en Umami
@@ -15,6 +15,7 @@ Pon aquí los nombres que usas en Umami (los ids se buscan solos):
 
 - Recetario: **«Recetas ChatiChef»** (cámbialo si usas otro).
 - Plan de comidas: **«Comidas y Cenas»** (cámbialo si usas otro).
+- Lista de la compra: **«Compra ChatiChef»** (créala en la app de Umami y compártela con quien haga la compra).
 
 ## Cuándo
 
@@ -89,16 +90,28 @@ Por cada receta:
    - Ese día y franja tiene una entrada que **puso el usuario** y no sale del menú → **no la toques**: pregunta.
    - No hay nada → `add_meal_plan_item` con `recipeId`, `date`, `meal` y `mealPlanId`.
 
+## Paso 4. Lista de la compra en Umami
+
+Si usas el tablero, cuando el usuario confirma el menú de una semana pasa la compra del tablero a la lista de Umami (`groceryListId`: búscala con `list_grocery_lists` por su nombre).
+
+1. **Limpia lo ya comprado de semanas anteriores:** `get_grocery_list` y quita con `remove_grocery_items` los productos marcados como comprados (`completed: true`) cuyo id esté en el campo `umamiItemId` de alguna línea de `shopping` de semanas anteriores. Nunca quites lo que se añadió a mano ni lo que siga sin comprar.
+2. **Lee la compra de la semana:** `db_query shopping` con `week == <lunes>`. Van a Umami las líneas `kind: "falta"` con `checked: false`, salvo las que ya estén cubiertas por lo que hay en `inventory` (lo que el tablero enseña como «Ya lo tienes en casa»).
+3. **Una línea = un producto** en `add_grocery_items` (todas en una llamada): `name` sin cantidad («Patatas»), `quantity` («2 kg»; si es de otra tienda, «2 kg · Lidl»), `aisle` = la `section` del tablero, y `recipeId`/`recipeName` solo si la línea es para un único plato.
+4. **Guarda el vínculo:** `update` de cada `shopping/<id>` con `umamiItemId` (con `ifVersion`, sin tocar `checked`). Si un producto sale en `skipped`, busca su id con `get_grocery_list` y guárdalo igual.
+5. Lo marcado como comprado en el tablero (`checked: true`) se marca también en Umami con `update_grocery_items` (`completed: true`). Al revés no.
+
 ## Cambios después de confirmar
 
 - **Otro día u otro turno**: `update_meal_plan_item` (nueva `date` y/o `meal`) **y** cambia las etiquetas de día y turno de la receta.
 - **Otra receta en ese hueco**: guarda la nueva y apunta la entrada del plan a ella. Si la vieja ya no se usa, quítale las etiquetas de esta semana.
 - **Otra cantidad u otra versión de la misma receta**: `edit_recipe` de la misma; nunca una segunda receta.
 - **Un plato cae y no tiene a dónde ir**: quita su entrada con `remove_meal_plan_item` y dilo en la línea final.
+- **Compra:** línea nueva → `add_grocery_items` y guarda su `umamiItemId`; línea quitada → `remove_grocery_items` si en Umami sigue sin comprar; cantidad distinta → `update_grocery_items`.
 - Si usas el tablero, mantenlo en paralelo (skill `chatichef-tablero`).
 
 ## Comprobación final (obligatoria)
 
 1. `get_meal_plan_items` del rango otra vez y compáralo con la tabla del paso 0: **cada día y franja tiene exactamente su receta**.
 2. Para las recetas creadas o editadas, comprueba con `find_recipes` que hay **una sola** con ese nombre y con las etiquetas de esta semana.
-3. Di en **una línea** qué has añadido y dónde: «Umami: 9 recetas en «Recetas ChatiChef» (4 nuevas, 5 reutilizadas) y 9 entradas en «Comidas y Cenas» (mié 18 → dom 22)». Si algo falló, dilo en esa misma línea.
+3. `get_grocery_list`: cada línea «falta» que debía ir está una sola vez.
+4. Di en **una línea** qué has añadido y dónde: «Umami: 9 recetas en «Recetas ChatiChef» (4 nuevas, 5 reutilizadas), 9 entradas en «Comidas y Cenas» (mié 18 → dom 22) y 21 productos en «Compra ChatiChef»». Si algo falló, dilo en esa misma línea.

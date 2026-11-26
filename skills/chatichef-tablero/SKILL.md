@@ -100,6 +100,7 @@ Al acabar una semana, quítala de `config/current.weeks` (update con `ifVersion`
 { week: "2026-11-16", order: 1, section: "Frutería", kind: "falta" | "tengo",
   text: "2 kg de patatas (se gastan ~1,2 kg)", dest: "Ma, Mi y Ju cena (200 g cada una)",
   store: "Lidl",   // solo si NO es de los supermercados habituales
+  umamiItemId: "…", // lo escribe la skill chatichef-guardar-umami al pasar la línea a la lista de Umami
   checked: false }
 ```
 
