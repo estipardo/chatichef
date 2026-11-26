@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { UMAMI } from "../src/umami/config.js";
 import { Umami } from "../src/umami/index.js";
 import { pathSegment, toWire, toWireLike } from "../src/umami/store.js";
@@ -194,5 +194,17 @@ describe("toWireLike", () => {
     expect(toWireLike({ timestampValue: "x" }, d)).toEqual({ timestampValue: d.toISOString() });
     expect(toWireLike(undefined, 3)).toEqual({ integerValue: "3" });
     expect(toWireLike({ doubleValue: 1.5 }, 3)).toEqual({ doubleValue: 3 });
+  });
+});
+
+describe("running on Workers", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("never calls the global fetch as a method of another object", async () => {
+    vi.stubGlobal("fetch", fake.fetch);
+    const { Session } = await import("../src/umami/session.js");
+    const defaults = new Umami(Session.fromRefreshToken("refresh-1"));
+    expect((await defaults.recipes.listBooks()).length).toBe(2);
+    await expect(defaults.photos.add("r1", { imageBase64: btoa("x") })).rejects.toThrow(/JPEG, PNG or WebP/);
   });
 });

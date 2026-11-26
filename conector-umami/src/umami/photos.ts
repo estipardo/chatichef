@@ -5,7 +5,7 @@
  *     type), whose request message is { 1: recipeId, 2: storagePath }.
  * If step 2 is rejected, the uploaded file is deleted again.
  */
-import { LIMITS, STORAGE_URL, UMAMI } from "./config.js";
+import { LIMITS, STORAGE_URL, UMAMI, webFetch } from "./config.js";
 import { failure, UmamiError } from "./errors.js";
 import type { Session } from "./session.js";
 import { newId } from "./store.js";
@@ -13,10 +13,14 @@ import { newId } from "./store.js";
 type Mime = "image/jpeg" | "image/png" | "image/webp";
 
 export class Photos {
+  private readonly http: typeof fetch;
+
   constructor(
     private readonly session: Session,
-    private readonly http: typeof fetch = fetch,
-  ) {}
+    http: typeof fetch = webFetch,
+  ) {
+    this.http = (input, init) => http(input, init);
+  }
 
   async add(recipeId: string, source: { imageUrl?: string; imageBase64?: string }) {
     const bytes = await this.load(source);

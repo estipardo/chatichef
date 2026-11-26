@@ -1,4 +1,4 @@
-import { DB_PATH, FIRESTORE_URL } from "./config.js";
+import { DB_PATH, FIRESTORE_URL, webFetch } from "./config.js";
 import { failure, UmamiError } from "./errors.js";
 import type { Session } from "./session.js";
 
@@ -131,10 +131,15 @@ export interface Query {
 
 /** Minimal Firestore REST client authenticated as the Umami user. */
 export class Store {
+  private readonly http: typeof fetch;
+
   constructor(
     private readonly session: Session,
-    private readonly http: typeof fetch = fetch,
-  ) {}
+    http: typeof fetch = webFetch,
+  ) {
+    // Never call a fetch as this.http(...): Workers reject that (see webFetch).
+    this.http = (input, init) => http(input, init);
+  }
 
   docPath(collection: string, id: string): string {
     return `${DB_PATH}/documents/${collection}/${id}`;

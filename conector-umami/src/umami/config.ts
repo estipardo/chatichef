@@ -28,3 +28,10 @@ export const LIMITS = {
   markdown: 50_000,
   photoBytes: 10 * 1024 * 1024,
 } as const;
+
+/**
+ * The global fetch, wrapped. Workers throw "Illegal invocation" when fetch is
+ * called as a method of another object (this.http(...)), so it is never
+ * stored or passed around bare.
+ */
+export const webFetch: typeof fetch = (input, init) => fetch(input, init);

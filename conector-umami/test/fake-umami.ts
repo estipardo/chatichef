@@ -37,7 +37,19 @@ export class FakeUmami {
     return new Date(Date.UTC(2026, 0, 1, 0, 0, this.clock++)).toISOString();
   }
 
-  fetch = (async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
+  /**
+   * Behaves like the Workers fetch: throws "Illegal invocation" when called
+   * as a method of some other object.
+   */
+  fetch: typeof fetch = (() => {
+    const fake = this;
+    return function (this: unknown, input: RequestInfo | URL, init?: RequestInit) {
+      if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+      return fake.handle(input, init);
+    } as typeof fetch;
+  })();
+
+  private handle = (async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
     const url = String(input);
     const body = typeof init.body === "string" ? init.body : undefined;
     if (url.startsWith(TOKEN_URL)) {
@@ -67,7 +79,7 @@ export class FakeUmami {
       return doc ? Response.json(structuredClone(doc)) : Response.json({ error: { message: "NOT_FOUND" } }, { status: 404 });
     }
     return new Response("unexpected " + url, { status: 500 });
-  }) as typeof fetch;
+  });
 
   private query(q: any) {
     const collection = q.from[0].collectionId;

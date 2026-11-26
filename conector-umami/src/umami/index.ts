@@ -1,3 +1,4 @@
+import { webFetch } from "./config.js";
 import { MealPlans } from "./mealplans.js";
 import { Photos } from "./photos.js";
 import { Recipes } from "./recipes.js";
@@ -13,7 +14,7 @@ export class Umami {
   readonly plans: MealPlans;
   readonly photos: Photos;
 
-  constructor(session: Session, http: typeof fetch = fetch) {
+  constructor(session: Session, http: typeof fetch = webFetch) {
     const store = new Store(session, http);
     this.recipes = new Recipes(store, session);
     this.plans = new MealPlans(store, session, this.recipes);

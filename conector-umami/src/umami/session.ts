@@ -1,4 +1,4 @@
-import { SIGN_IN_URL, TOKEN_URL } from "./config.js";
+import { SIGN_IN_URL, TOKEN_URL, webFetch } from "./config.js";
 import { failure, UmamiError } from "./errors.js";
 
 type Fetch = typeof fetch;
@@ -18,19 +18,23 @@ export class Session {
   private token?: Token;
   private renewing?: Promise<Token>;
 
+  private readonly http: Fetch;
+
   private constructor(
     private refresh: string,
-    private readonly http: Fetch,
-  ) {}
+    http: Fetch,
+  ) {
+    this.http = (input, init) => http(input, init);
+  }
 
   /** Resume a session from a stored refresh token. */
-  static fromRefreshToken(refreshToken: string, http: Fetch = fetch): Session {
+  static fromRefreshToken(refreshToken: string, http: Fetch = webFetch): Session {
     if (!refreshToken) throw new UmamiError("A refresh token is required");
     return new Session(refreshToken, http);
   }
 
   /** Sign in once with email and password. The password is not kept. */
-  static async signIn(email: string, password: string, http: Fetch = fetch): Promise<Session> {
+  static async signIn(email: string, password: string, http: Fetch = webFetch): Promise<Session> {
     const response = await http(SIGN_IN_URL, {
       method: "POST",
       headers: { "content-type": "application/json" },
