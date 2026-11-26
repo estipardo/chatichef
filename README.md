@@ -1,143 +1,147 @@
 # ChatiChef
 
-Un asistente de cocina semanal montado sobre un **proyecto de Claude**. Reinterpreta platos de siempre en versiones saludables (lasaña de calabacín, bechamel de anacardos, carbonara sin nata…), monta el menú de la semana alrededor de lo que ya tienes en la nevera y te da la lista de la compra solo con lo que falta.
+*[Leer en español](README.es.md)*
 
-Lo que lo hace distinto de pedirle recetas a un chat:
+A weekly cooking assistant built on a **Claude project**. It reworks everyday dishes into healthy versions (courgette lasagne, cashew béchamel, carbonara without cream…), builds the week's menu around what you already have in the fridge and gives you a shopping list with only what is missing.
 
-- **Tiempos honestos**: cada receta lleva tres números (cuchillo, fuego y total realista), porque el tiempo de fogón no cuenta pelar ni picar.
-- **Calorías calculadas, no estimadas**: una calculadora en Python suma cada cucharada de aceite, comprueba tu listón de proteína y detecta ingredientes prohibidos según quién se come el plato.
-- **Aprovechamiento**: pregunta qué te ha sobrado y cuánto, coloca primero lo abierto y lo descongelado, y la compra pasa a ser de reposición.
-- **Recetas para nivel básico**: un paso por acción, la señal visible de "ya está hecho" y los errores típicos.
-- **Tablero en el móvil** (opcional): menú, despensa (con lo que está libre y lo reservado para cada plato), compra que se ajusta sola y notas, sincronizado con Claude.
-- **Tablero de alimentos** (opcional): qué puede y qué no puede comer cada persona, y las dudas que Claude te va preguntando.
-- **Avisos por correo** (opcional): lo que caduca, cuándo preparar la compra y cuándo bajar algo del congelador.
-- **Umami** (opcional): guarda las recetas confirmadas en tu recetario y en el plan de comidas, con un conector propio incluido en este repositorio.
+What makes it different from asking a chat for recipes:
 
-## Qué hay aquí
+- **Honest times**: every recipe has three numbers (knife, heat and a realistic total), because stove time doesn't count peeling and chopping.
+- **Calories worked out, not guessed**: a Python calculator adds up every spoonful of oil, checks your protein target and spots forbidden ingredients depending on who is eating.
+- **Using up what you have**: it asks what is left over and how much, uses opened and thawed things first, and shopping becomes a top-up.
+- **Recipes for beginners**: one step per action, the visible sign that something is done, and the usual mistakes.
+- **Board on your phone** (optional): menu, pantry (with what is free and what is reserved for each dish), a shopping list that adjusts itself and ratings, synced with Claude. It shows in English or Spanish depending on your phone's language.
+- **Foods board** (optional): what each person can and can't eat, and the questions Claude asks you along the way.
+- **Email reminders** (optional): what is about to expire, when to get the shopping ready and when to take something out of the freezer.
+- **Umami** (optional): saves confirmed recipes to your recipe book and meal plan, with its own connector included in this repository.
 
-| Carpeta | Qué es |
+## What's here
+
+| Folder | What it is |
 |---|---|
-| `instrucciones/instrucciones-proyecto.md` | Plantilla de las instrucciones del proyecto. Rellena lo que va entre `[corchetes]`. |
-| `instrucciones/tiempos-reales.md` | Tabla para estimar el tiempo de cuchillo. |
-| `instrucciones/aprendizajes-de-cocina.md` | Técnicas que suelen fallar y cómo se arreglan. Ve añadiendo las tuyas. |
-| `skills/chatichef-nutricion` | Skill + calculadora de kcal y proteína (`scripts/chatichef_nutricion.py`) con tu `perfil.json`. |
-| `skills/chatichef-tablero` | Skill para leer y escribir en el tablero. |
-| `skills/chatichef-guardar-umami` | Skill para guardar las recetas en Umami. |
-| `tablero/` | El tablero de la semana y el de alimentos, para publicarlos como artifacts. |
-| `docs/` | El botón «Pedir el menú» del tablero y los avisos por correo (caducidad, compra, descongelar). |
-| `conector-umami/` | Conector MCP para Umami Recipes (recetario y plan de comidas), listo para desplegar en Cloudflare. |
+| `instructions/project-instructions.md` | Template for the project instructions. Fill in whatever is in `[brackets]`. |
+| `instructions/prep-times.md` | Table to estimate knife time. |
+| `instructions/cooking-lessons.md` | Techniques that tend to go wrong and how to fix them. Keep adding your own. |
+| `skills/chatichef-nutrition` | Skill + kcal and protein calculator (`scripts/chatichef_nutrition.py`) with your `profile.json`. |
+| `skills/chatichef-board` | Skill to read from and write to the board. |
+| `skills/chatichef-save-to-umami` | Skill to save recipes to Umami. |
+| `boards/` | The weekly board and the foods board, to publish as artifacts. |
+| `docs/` | The board's «Ask for the menu» button and the email reminders (expiry, shopping, thawing). |
+| `umami-connector/` | MCP connector for Umami Recipes (recipe book, meal plan and grocery list), ready to deploy on Cloudflare. |
 
-## Cómo montarlo
+Every document has a Spanish copy next to it (`.es.md`), and every skill has a `SKILL.es.md`.
 
-1. **Crea un proyecto** en Claude (por ejemplo, «ChatiChef»).
-2. **Instrucciones**: copia `instrucciones/instrucciones-proyecto.md` en las instrucciones del proyecto y rellena tus datos: cuántos sois, restricciones, lo que no coméis, equipo de cocina, supermercados. Quita las secciones *(opcional)* que no uses.
-3. **Documentos**: sube `tiempos-reales.md` y `aprendizajes-de-cocina.md` al proyecto.
-4. **Perfil de la calculadora**: copia `skills/chatichef-nutricion/scripts/perfil.ejemplo.json` como `perfil.json` en la misma carpeta y pon tus prohibidos y tu listón. Los ids son los de la tabla del script (`python3 chatichef_nutricion.py --lista`).
-5. **Skills**: comprime cada carpeta de `skills/` en un `.zip` (o ejecuta `./empaquetar-skills.sh`) y súbelas como skills en Claude. Si no usas el tablero o Umami, sube solo `chatichef-nutricion`.
-6. **Tableros** (opcional): sigue `tablero/README.md`.
-   Avisos (opcional): sigue `docs/avisos.md`.
-7. **Umami** (opcional): despliega el conector de `conector-umami/` siguiendo su README y añádelo a Claude. La skill `chatichef-guardar-umami` usa sus herramientas de recetario y de plan de comidas.
+## How to set it up
 
-Luego, en un chat del proyecto: «Hazme el menú de esta semana». Te preguntará qué comidas cubre, qué días coméis fuera y qué te ha sobrado.
+1. **Create a project** in Claude (e.g. «ChatiChef»).
+2. **Instructions**: copy `instructions/project-instructions.md` into the project instructions and fill in your details: how many of you there are, restrictions, what you don't eat, kitchen equipment, supermarkets. Remove the *(optional)* sections you don't use. If you want Claude to answer in Spanish, use `project-instructions.es.md` instead.
+3. **Documents**: upload `prep-times.md` and `cooking-lessons.md` to the project (or their `.es.md` copies).
+4. **Calculator profile**: copy `skills/chatichef-nutrition/scripts/profile.example.json` as `profile.json` in the same folder and set your forbidden foods and your targets. The ids are the ones in the script's table (`python3 chatichef_nutrition.py --list`).
+5. **Skills**: run `./package-skills.sh` (or `./package-skills.sh --es` for the Spanish skills); it leaves one `.zip` per skill in `dist/`. Upload them as skills in Claude. If you don't use the board or Umami, upload only `chatichef-nutrition`.
+6. **Boards** (optional): follow `boards/README.md`.
+   Reminders (optional): follow `docs/reminders.md`.
+7. **Umami** (optional): deploy the connector in `umami-connector/` following its README and add it to Claude. The `chatichef-save-to-umami` skill uses its recipe book, meal plan and grocery list tools.
 
-## Probar la calculadora
+Then, in a chat in the project: «Make me this week's menu». It will ask which meals to cover, which days you eat out and what is left over.
+
+## Try the calculator
 
 ```bash
-cd skills/chatichef-nutricion/scripts
-cp perfil.ejemplo.json perfil.json
-cat > /tmp/receta.json <<'JSON'
-{"nombre": "Pollo con patata", "raciones": 2, "turno": "cena", "semana": "normal", "para": "todos",
- "ingredientes": [{"id": "contramuslo-pollo", "g": 400}, {"id": "patata", "g": 300},
-                  {"id": "aceite-oliva", "cdta": 2, "nota": "dorar"}, {"id": "pimenton"}]}
+cd skills/chatichef-nutrition/scripts
+cp profile.example.json profile.json
+cat > /tmp/recipe.json <<'JSON'
+{"name": "Chicken with potatoes", "servings": 2, "meal": "dinner", "week": "normal", "for": "everyone",
+ "ingredients": [{"id": "chicken-thigh", "g": 400}, {"id": "potato", "g": 300},
+                 {"id": "olive-oil", "tsp": 2, "note": "browning"}, {"id": "paprika"}]}
 JSON
-python3 chatichef_nutricion.py /tmp/receta.json
+python3 chatichef_nutrition.py /tmp/recipe.json
 ```
 
-Los valores de la tabla son medios (±10 %) de tablas como BEDCA o USDA. **No es consejo médico ni nutricional**: si tienes una alergia o intolerancia, revisa siempre la etiqueta tú.
+The table values are averages (±10 %) from tables such as USDA or BEDCA. **This is not medical or nutritional advice**: if you have an allergy or intolerance, always check the label yourself.
 
-## Licencia
+## Licence
 
 [MIT](LICENSE).
 
-## Usarlo con otras IA que no sean Claude
+## Using it with AIs other than Claude
 
-ChatiChef está hecho con Claude, pero **casi todo es texto normal**, así que sirve con otras IA (ChatGPT, Gemini…). No hace falta saber programar. Esto es lo que funciona fuera de Claude:
+ChatiChef is built with Claude, but **almost everything is plain text**, so it works with other AIs (ChatGPT, Gemini…). You don't need to know how to code. This is what works outside Claude:
 
-| Parte | ¿Funciona en otra IA? |
+| Part | Does it work in another AI? |
 |---|---|
-| Instrucciones (`instrucciones-proyecto.md`) | **Sí.** Es lo más importante y funciona en cualquier IA que tenga «proyectos», «instrucciones personalizadas» o «Gems». |
-| Tiempos reales y aprendizajes de cocina | **Sí.** Se suben como archivos. |
-| Calculadora de calorías (`chatichef_nutricion.py`) | **Sí, si la IA puede ejecutar código Python.** ChatGPT puede; en otras, depende. Si no, la IA estimará los números (menos exactos). |
-| Skills (`skills/…/SKILL.md`) | **A medias.** Otras IA no las activan solas, pero puedes subirlas como archivos normales y decirle cuándo leerlas (abajo tienes el texto). |
-| Conector de Umami | **Solo si la IA admite conectores MCP** (un estándar abierto para conectar apps). ChatGPT lo admite, con límites según el plan. |
-| Tableros (semana y alimentos) | **No.** Usan la base de datos de Claude. Abajo tienes alternativas. |
-| Avisos por correo | **Depende** de si la IA tiene tareas programadas. Si no, usa los recordatorios del móvil. |
+| Instructions (`project-instructions.md`) | **Yes.** It is the most important part and works in any AI with «projects», «custom instructions» or «Gems». |
+| Prep times and cooking lessons | **Yes.** They are uploaded as files. |
+| Calorie calculator (`chatichef_nutrition.py`) | **Yes, if the AI can run Python code.** ChatGPT can; for others, it depends. If not, the AI will estimate the numbers (less accurate). |
+| Skills (`skills/…/SKILL.md`) | **Partly.** Other AIs don't trigger them on their own, but you can upload them as normal files and tell it when to read them (the text is below). |
+| Umami connector | **Only if the AI supports MCP connectors** (an open standard for connecting apps). ChatGPT does, with limits depending on the plan. |
+| Boards (weekly and foods) | **No.** They use Claude's database. There are alternatives below. |
+| Email reminders | **It depends** on whether the AI has scheduled tasks. If not, use your phone's reminders. |
 
-### Paso 1. Descarga los archivos
+### Step 1. Download the files
 
-1. En esta página de GitHub, pulsa el botón verde **«Code»** y luego **«Download ZIP»**.
-2. Abre el archivo descargado (doble clic) para descomprimirlo. Te queda una carpeta `chatichef-main` con todo.
+1. On this GitHub page, press the green **«Code»** button and then **«Download ZIP»**.
+2. Open the downloaded file (double-click) to unzip it. You get a `chatichef-main` folder with everything.
 
-Los archivos que acaban en `.md` son texto normal: se abren con el Bloc de notas (Windows), TextEdit (Mac) o cualquier editor de texto.
+Files ending in `.md` are plain text: they open in Notepad (Windows), TextEdit (Mac) or any text editor.
 
-### Paso 2. Prepara tus instrucciones
+### Step 2. Prepare your instructions
 
-1. Abre `instrucciones/instrucciones-proyecto.md`.
-2. Rellena todo lo que va entre `[corchetes]`: cuántos sois, qué no podéis comer, qué tenéis en la cocina, dónde compráis… Si una frase no va contigo, bórrala.
-3. **Borra estas secciones**, que solo funcionan en Claude: «Guardar las recetas en Umami» (salvo que conectes Umami, paso 5) y «Avisos y recordatorios».
-4. En la sección «Formato de la propuesta semanal», borra los dos párrafos que empiezan por *(Si usas el tablero)* y *(Si no)* y pon en su lugar:
-   > Dame el menú en el chat, con cada receta separada por un título con el día y la comida. Al final, la lista de la compra agrupada por sección del súper, en una lista con casillas que pueda copiar.
-5. Al final del todo, pega este bloque (cambia los nombres si renombras los archivos):
-   > **Cómo usar los archivos del proyecto.** Antes de dar calorías o proteína de cualquier receta, lee `chatichef-nutricion.md` y ejecuta `chatichef_nutricion.py` como explica (con mi `perfil.json`); nunca calcules de cabeza. Para los tiempos, usa la tabla de `tiempos-reales.md`. Antes de proponer una técnica, mira `aprendizajes-de-cocina.md`.
+1. Open `instructions/project-instructions.md` (or `.es.md` for Spanish).
+2. Fill in everything in `[brackets]`: how many of you there are, what you can't eat, what you have in the kitchen, where you shop… If a sentence doesn't apply to you, delete it.
+3. **Delete these sections**, which only work in Claude: «Saving recipes to Umami» (unless you connect Umami, step 5) and «Reminders».
+4. In the «Format of the weekly proposal» section, delete the two paragraphs that start with *(If you use the board)* and *(If not)* and put this instead:
+   > Give me the menu in the chat, with each recipe under a heading with the day and the meal. At the end, the shopping list grouped by supermarket section, as a checklist I can copy.
+5. At the very end, paste this block (change the names if you rename the files):
+   > **How to use the project files.** Before giving the calories or protein of any recipe, read `chatichef-nutrition.md` and run `chatichef_nutrition.py` as it explains (with my `profile.json`); never work it out in your head. For times, use the table in `prep-times.md`. Before suggesting a technique, check `cooking-lessons.md`.
 
-### Paso 3. Crea el proyecto en tu IA
+### Step 3. Create the project in your AI
 
-**En ChatGPT:**
+**In ChatGPT:**
 
-1. En la barra lateral, busca **«Proyectos»** y crea uno nuevo llamado «ChatiChef».
-2. En la configuración del proyecto, pega tus instrucciones (paso 2) en el apartado de **instrucciones**.
-3. Sube como **archivos del proyecto**:
-   - `instrucciones/tiempos-reales.md`
-   - `instrucciones/aprendizajes-de-cocina.md`
-   - `skills/chatichef-nutricion/SKILL.md` (renómbralo antes a `chatichef-nutricion.md` para que se entienda qué es)
-   - `skills/chatichef-nutricion/scripts/chatichef_nutricion.py`
-   - tu `perfil.json` (paso 4)
+1. In the sidebar, look for **«Projects»** and create a new one called «ChatiChef».
+2. In the project settings, paste your instructions (step 2) into the **instructions** field.
+3. Upload as **project files**:
+   - `instructions/prep-times.md`
+   - `instructions/cooking-lessons.md`
+   - `skills/chatichef-nutrition/SKILL.md` (rename it to `chatichef-nutrition.md` first so it's clear what it is)
+   - `skills/chatichef-nutrition/scripts/chatichef_nutrition.py`
+   - your `profile.json` (step 4)
 
-**En Gemini:** crea un **Gem** («Gems» en el menú), pega las instrucciones en su descripción y añade los mismos archivos como conocimiento. Si tu cuenta no puede ejecutar el script, quita la frase del script del bloque del paso 2.5: la IA estimará los números.
+**In Gemini:** create a **Gem** («Gems» in the menu), paste the instructions into its description and add the same files as knowledge. If your account can't run the script, remove the sentence about the script from the block in step 2.5: the AI will estimate the numbers.
 
-**En cualquier otra IA:** busca algo como «proyecto», «asistente personalizado» o «instrucciones personalizadas». Lo importante es que las instrucciones queden guardadas y que pueda leer los archivos.
+**In any other AI:** look for something like «project», «custom assistant» or «custom instructions». What matters is that the instructions stay saved and that it can read the files.
 
-### Paso 4. Tu perfil para la calculadora
+### Step 4. Your calculator profile
 
-1. Copia `skills/chatichef-nutricion/scripts/perfil.ejemplo.json` y llama a la copia `perfil.json`.
-2. Ábrelo con el editor de texto y cambia:
-   - en `prohibidos`, lo que no puede comer nadie (`todos`) y lo de cada persona (pon vuestros nombres en lugar de `ana` y `luis`);
-   - en `liston`, las calorías mínimas, las máximas y la proteína mínima de cada comida.
-3. Los nombres de los ingredientes tienen que ser los de la calculadora. Si no sabes cómo se llama uno, pregúntaselo a la IA: «¿cómo se llama el atún en la tabla de la calculadora?» (ella puede ejecutar `python3 chatichef_nutricion.py --lista atun`).
+1. Copy `skills/chatichef-nutrition/scripts/profile.example.json` and call the copy `profile.json`.
+2. Open it in the text editor and change:
+   - in `forbidden`, what nobody can eat (`everyone`) and what each person can't (put your names instead of `ana` and `luis`);
+   - in `targets`, the minimum calories, the maximum calories and the minimum protein for each meal.
+3. Ingredient names must be the calculator's. If you don't know what one is called, ask the AI: «what is tuna called in the calculator's table?» (it can run `python3 chatichef_nutrition.py --list tuna`).
 
-### Paso 5 (opcional). Umami en ChatGPT
+### Step 5 (optional). Umami in ChatGPT
 
-1. Despliega el conector siguiendo `conector-umami/README.md` (es gratis y no hace falta instalar nada si usas el panel de Cloudflare).
-2. En ChatGPT, busca en los ajustes la opción de **añadir un servidor MCP propio** (suele estar en «Apps», «Conectores» o «Plugins»; en algunos planes hay que activar antes el «modo desarrollador»).
-3. Pega la dirección de tu conector terminada en `/mcp` y entra con tu email y contraseña de Umami.
-4. Sube también `skills/chatichef-guardar-umami/SKILL.md` como archivo y añade a tus instrucciones: «Cuando confirme las recetas, guárdalas en Umami siguiendo `chatichef-guardar-umami.md`».
+1. Deploy the connector following `umami-connector/README.md` (it's free and you don't need to install anything if you use the Cloudflare dashboard).
+2. In ChatGPT, look in the settings for the option to **add your own MCP server** (usually under «Apps», «Connectors» or «Plugins»; on some plans you first have to turn on «developer mode»).
+3. Paste your connector's address ending in `/mcp` and sign in with your Umami email and password.
+4. Also upload `skills/chatichef-save-to-umami/SKILL.md` as a file and add to your instructions: «When I confirm the recipes, save them to Umami following `chatichef-save-to-umami.md`».
 
-Si tu plan no deja conectarlo, pide las recetas en el chat y cópialas a Umami a mano.
+If your plan doesn't let you connect it, ask for the recipes in the chat and copy them to Umami by hand.
 
-### Paso 6. Úsalo
+### Step 6. Use it
 
-Escribe en el proyecto: **«Hazme el menú de esta semana»**. Te preguntará qué comidas cubre, qué días coméis fuera y qué te ha sobrado. Cuando estés de acuerdo, pídele la lista de la compra.
+Write in the project: **«Make me this week's menu»**. It will ask which meals to cover, which days you eat out and what is left over. When you agree, ask it for the shopping list.
 
-### Lo que no tendrás sin Claude, y cómo apañarte
+### What you won't have without Claude, and how to manage
 
-- **Tablero de la semana:** pide el menú y la compra en el chat y guárdalos donde ya los mires (Notas del móvil, Google Keep, Umami). Para la despensa, pídele al principio de cada semana: «Esto es lo que tengo en casa: …».
-- **Tablero de alimentos:** pon lo que no podéis comer directamente en las instrucciones. Cuando la IA te haga preguntas, añade tus respuestas a las instrucciones para que no se olviden.
-- **Avisos:** pide a la IA, al darte el menú, una lista de recordatorios con día y hora («bajar el pollo del congelador el miércoles a las 21:30») y créalos en el móvil.
+- **Weekly board:** ask for the menu and the shopping in the chat and keep them wherever you already look (your phone's Notes, Google Keep, Umami). For the pantry, tell it at the start of each week: «This is what I have at home: …».
+- **Foods board:** put what you can't eat straight into the instructions. When the AI asks you questions, add your answers to the instructions so they aren't forgotten.
+- **Reminders:** when it gives you the menu, ask the AI for a list of reminders with a day and time («take the chicken out of the freezer on Wednesday at 21:30») and create them on your phone.
 
-### Palabras que pueden sonar raras
+### Words that may sound odd
 
-- **Archivo `.md` (Markdown):** texto normal con algún símbolo para títulos (`#`) y listas (`-`).
-- **Python / script:** un pequeño programa. La calculadora es uno: suma calorías en vez de que la IA las adivine.
-- **Skill:** un archivo de instrucciones para una tarea concreta. Claude las lee solo; otras IA, cuando se lo pides.
-- **MCP / conector:** la forma estándar de que una IA hable con otra app (aquí, Umami).
-- **Artifact:** una página que Claude publica y que se puede abrir en el móvil. Los tableros lo son.
+- **`.md` file (Markdown):** plain text with a few symbols for headings (`#`) and lists (`-`).
+- **Python / script:** a small program. The calculator is one: it adds up calories instead of the AI guessing them.
+- **Skill:** an instructions file for a specific task. Claude reads them on its own; other AIs, when you ask them to.
+- **MCP / connector:** the standard way for an AI to talk to another app (here, Umami).
+- **Artifact:** a page that Claude publishes and that you can open on your phone. The boards are artifacts.
