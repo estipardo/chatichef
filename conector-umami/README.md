@@ -40,7 +40,7 @@ Necesitas una cuenta gratuita de Cloudflare.
 **Desde el panel (sin instalar nada):**
 
 1. En Cloudflare: **Workers & Pages → Create → Import a repository** y elige tu copia de este repositorio.
-2. En la configuración de build pon **Root directory: `conector-umami`** y deja el comando de deploy en `npx wrangler deploy`.
+2. Deja la configuración por defecto: directorio raíz `/` y comando de deploy `npx wrangler deploy`. El `wrangler.jsonc` de la raíz del repo ya apunta a esta carpeta.
 3. Despliega. El KV para los permisos se crea solo la primera vez.
 4. En el Worker: **Settings → Variables and Secrets → Add**, tipo **Secret**, nombre `ALLOWED_EMAILS`, valor tu email de Umami (varios, separados por comas).
 5. En Claude, añade un conector personalizado con la URL `https://umami-mcp.<tu-subdominio>.workers.dev/mcp` y conéctalo con tu cuenta de Umami.
@@ -48,7 +48,7 @@ Necesitas una cuenta gratuita de Cloudflare.
 **Desde la terminal:**
 
 ```bash
-cd conector-umami
+# desde la raíz del repositorio
 npm ci
 npx wrangler login
 npx wrangler deploy
@@ -60,6 +60,7 @@ Si tu cuenta de Umami se creó con «Iniciar sesión con Apple» o con Google, p
 ## Desarrollo
 
 ```bash
+# desde la raíz del repositorio
 npm ci
 npm test        # tests con un Umami falso en memoria
 npm run check   # TypeScript
@@ -72,4 +73,4 @@ npm run dev     # Worker en local (http://localhost:8787)
 
 A remote MCP server (Cloudflare Worker) for [Umami Recipes](https://www.umami.recipes/): recipe books, recipes, photos and meal plans, with the 12 tools listed above. Written from scratch, MIT licensed, not affiliated with Umami; it talks to the same private API the Umami web app uses, which may change.
 
-Deploy: import this repository in Cloudflare Workers with **root directory `conector-umami`**, add a secret `ALLOWED_EMAILS` with your Umami email, then add `https://umami-mcp.<your-subdomain>.workers.dev/mcp` as a custom connector in Claude and sign in with your Umami email and password. The password is exchanged once for a refresh token and never stored; only allow-listed emails can sign in.
+Deploy: import this repository in Cloudflare Workers with the default settings (the root `wrangler.jsonc` points to this folder), add a secret `ALLOWED_EMAILS` with your Umami email, then add `https://umami-mcp.<your-subdomain>.workers.dev/mcp` as a custom connector in Claude and sign in with your Umami email and password. The password is exchanged once for a refresh token and never stored; only allow-listed emails can sign in.

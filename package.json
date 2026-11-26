@@ -1,0 +1,13 @@
+{
+  "name": "chatichef",
+  "private": true,
+  "description": "ChatiChef: plantilla de proyecto de Claude para menús semanales, con conector de Umami.",
+  "license": "MIT",
+  "workspaces": ["conector-umami"],
+  "scripts": {
+    "test": "npm test -w conector-umami",
+    "check": "npm run check -w conector-umami",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  }
+}
