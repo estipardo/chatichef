@@ -44,25 +44,7 @@ export function buildServer(umami: Umami): McpServer {
     "List recipe tags",
     "Every tag in use, with how many recipes have it, across all books or in one book.",
     { recipeBookId: z.string().optional() },
-    // TEMPORAL: prueba de la lista de la compra en la cuenta real; se quita en el siguiente cambio.
-    async ({ recipeBookId }) => {
-      if (recipeBookId !== "__grocerytest__") return umami.recipes.listTags(recipeBookId);
-      const g = umami.groceries as any;
-      const raw = async () => {
-        const lists = await g.all();
-        const doc = await g.store.getRaw("umami.GroceryList", lists[0].id);
-        return doc.fields.groceries.arrayValue.values;
-      };
-      const before = (await raw()).length;
-      const add = await umami.groceries.add(undefined, [{ name: "PRUEBA conector (se borra sola)", quantity: "1 ud", aisle: "Prueba" }]);
-      const id = add.added[0]!.id;
-      const afterAdd = (await raw()).find((w: any) => w.mapValue.fields.id.stringValue === id);
-      const tick = await umami.groceries.update(undefined, [{ itemId: id, completed: true }]);
-      const afterTick = (await raw()).find((w: any) => w.mapValue.fields.id.stringValue === id);
-      const rem = await umami.groceries.remove(undefined, [id]);
-      const after = (await raw()).length;
-      return { before, after, add, afterAdd, tick, afterTick, rem, appItem: (await raw())[1] };
-    },
+    ({ recipeBookId }) => umami.recipes.listTags(recipeBookId),
   );
 
   tool(

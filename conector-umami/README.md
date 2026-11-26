@@ -15,12 +15,17 @@ Escrito desde cero para este repositorio, con licencia MIT. No es un producto of
 | `find_recipes` | Busca por texto y por etiquetas (todas deben coincidir) entre las 500 recetas más recientes de cada recetario |
 | `get_recipe` | Receta completa; ingredientes, pasos y notas en Markdown |
 | `create_recipe` / `edit_recipe` | Crea o cambia una receta (nombre, raciones, tiempos, etiquetas, información nutricional…) |
-| `add_recipe_photo` | Sube una foto JPEG, PNG o WebP (máx. 10 MB) desde una URL https o en base64 |
+| `add_recipe_photo` | Sube una foto JPEG, PNG o WebP (máx. 10 MB) desde una URL https o en base64. Ojo: al hacerlo, Umami vuelve a guardar la receta y borra la información nutricional |
 | `list_meal_plans` | Planes de comidas compartidos contigo |
 | `get_meal_plan_items` | Entradas de un plan entre dos fechas |
 | `add_meal_plan_item` | Pone una receta en un día como `LUNCH` (comida) o `DINNER` (cena), sin duplicarla |
 | `update_meal_plan_item` | Mueve una entrada a otro día o franja, o la apunta a otra receta |
 | `remove_meal_plan_item` | Quita una entrada del plan (la receta no se borra) |
+| `list_grocery_lists` | Listas de la compra compartidas contigo, con cuántos productos quedan por comprar |
+| `get_grocery_list` | Productos de una lista: cantidad, sección, receta y si ya están comprados |
+| `add_grocery_items` | Añade productos (sin repetir los que ya están pendientes) |
+| `update_grocery_items` | Cambia nombre, cantidad o sección, o marca y desmarca como comprado |
+| `remove_grocery_items` | Quita productos de la lista |
 
 Todas las escrituras comprueban que nadie ha cambiado el documento desde que se leyó, así que nunca pisan algo que hayas hecho en la app mientras tanto.
 
@@ -71,6 +76,6 @@ npm run dev     # Worker en local (http://localhost:8787)
 
 ## English
 
-A remote MCP server (Cloudflare Worker) for [Umami Recipes](https://www.umami.recipes/): recipe books, recipes, photos and meal plans, with the 12 tools listed above. Written from scratch, MIT licensed, not affiliated with Umami; it talks to the same private API the Umami web app uses, which may change.
+A remote MCP server (Cloudflare Worker) for [Umami Recipes](https://www.umami.recipes/): recipe books, recipes, photos, meal plans and grocery lists, with the 17 tools listed above. Written from scratch, MIT licensed, not affiliated with Umami; it talks to the same private API the Umami web app uses, which may change.
 
 Deploy: import this repository in Cloudflare Workers with the default settings (the root `wrangler.jsonc` points to this folder), add a secret `ALLOWED_EMAILS` with your Umami email, then add `https://umami-mcp.<your-subdomain>.workers.dev/mcp` as a custom connector in Claude and sign in with your Umami email and password. The password is exchanged once for a refresh token and never stored; only allow-listed emails can sign in.
