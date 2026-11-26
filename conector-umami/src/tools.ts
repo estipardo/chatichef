@@ -45,7 +45,11 @@ export function buildServer(umami: Umami): McpServer {
     "List recipe tags",
     "Every tag in use, with how many recipes have it, across all books or in one book.",
     { recipeBookId: z.string().optional() },
-    ({ recipeBookId }) => umami.recipes.listTags(recipeBookId),
+    // TEMPORAL: recipeBookId "__probe__:<colecciones extra separadas por comas>" lanza la búsqueda de las listas de la compra.
+    ({ recipeBookId }) =>
+      recipeBookId?.startsWith("__probe__")
+        ? probeGroceries(umami.store, umami.session, recipeBookId.slice(10).split(",").filter(Boolean))
+        : umami.recipes.listTags(recipeBookId),
   );
 
   tool(
