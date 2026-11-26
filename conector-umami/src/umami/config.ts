@@ -10,6 +10,7 @@ export const UMAMI = {
     book: "umami.RecipeBook",
     recipe: "umami.Recipe",
     plan: "umami.MealPlan",
+    groceries: "umami.GroceryList",
   },
   addPhotosRpc: "https://www.umami.recipes/api/rpc/umami.AppService/AddRecipePhotos",
 } as const;

@@ -3,7 +3,6 @@ import { z } from "zod";
 import { LIMITS } from "./umami/config.js";
 import { type Umami, UmamiError } from "./umami/index.js";
 import { MEALS } from "./umami/mealplans.js";
-import { probeGroceries } from "./probe.js";
 
 const text = z
   .string()
@@ -45,11 +44,25 @@ export function buildServer(umami: Umami): McpServer {
     "List recipe tags",
     "Every tag in use, with how many recipes have it, across all books or in one book.",
     { recipeBookId: z.string().optional() },
-    // TEMPORAL: recipeBookId "__probe__:<colecciones extra separadas por comas>" lanza la búsqueda de las listas de la compra.
-    ({ recipeBookId }) =>
-      recipeBookId?.startsWith("__probe__")
-        ? probeGroceries(umami.store, umami.session, recipeBookId.slice(10).split(",").filter(Boolean))
-        : umami.recipes.listTags(recipeBookId),
+    // TEMPORAL: prueba de la lista de la compra en la cuenta real; se quita en el siguiente cambio.
+    async ({ recipeBookId }) => {
+      if (recipeBookId !== "__grocerytest__") return umami.recipes.listTags(recipeBookId);
+      const g = umami.groceries as any;
+      const raw = async () => {
+        const lists = await g.all();
+        const doc = await g.store.getRaw("umami.GroceryList", lists[0].id);
+        return doc.fields.groceries.arrayValue.values;
+      };
+      const before = (await raw()).length;
+      const add = await umami.groceries.add(undefined, [{ name: "PRUEBA conector (se borra sola)", quantity: "1 ud", aisle: "Prueba" }]);
+      const id = add.added[0]!.id;
+      const afterAdd = (await raw()).find((w: any) => w.mapValue.fields.id.stringValue === id);
+      const tick = await umami.groceries.update(undefined, [{ itemId: id, completed: true }]);
+      const afterTick = (await raw()).find((w: any) => w.mapValue.fields.id.stringValue === id);
+      const rem = await umami.groceries.remove(undefined, [id]);
+      const after = (await raw()).length;
+      return { before, after, add, afterAdd, tick, afterTick, rem, appItem: (await raw())[1] };
+    },
   );
 
   tool(
@@ -164,13 +177,64 @@ export function buildServer(umami: Umami): McpServer {
     (input) => umami.plans.remove(input),
   );
 
-  // TEMPORAL: se quitará en cuanto se sepa cómo guarda Umami las listas de la compra.
+  // ---- grocery lists ----
+  const list = z.string().min(1).optional().describe("Grocery list id or exact name; optional if the account has only one list");
+  const product = z.object({
+    name: z.string().min(1).max(200).describe("What to buy, without the amount: «Huevos»"),
+    quantity: z.string().max(60).optional().describe("Amount as text: «1 docena», «400 g»"),
+    aisle: z.string().max(60).optional().describe("Shop section, used to group the list: «Frutería»"),
+    recipeId: z.string().optional().describe("Recipe it is for, so the app can group by recipe"),
+    recipeName: z.string().max(100).optional(),
+  });
+
+  tool("list_grocery_lists", "List grocery lists", "Grocery lists shared with this account, with members, number of products and how many are still to buy.", {}, () =>
+    umami.groceries.lists(),
+  );
+
   tool(
-    "debug_probe_grocery_lists",
-    "TEMPORARY read-only probe",
-    "Temporary, read-only: looks for the Firestore collection where Umami keeps grocery lists.",
-    { extraCollections: z.array(z.string()).optional() },
-    ({ extraCollections }) => probeGroceries(umami.store, umami.session, extraCollections),
+    "get_grocery_list",
+    "Get a grocery list",
+    "Every product of a grocery list with its id, quantity, aisle, recipe and whether it is ticked off (completed).",
+    { groceryListId: list },
+    ({ groceryListId }) => umami.groceries.items(groceryListId),
+  );
+
+  tool(
+    "add_grocery_items",
+    "Add products to a grocery list",
+    "Adds products to a grocery list. A product already on the list and not ticked off (same name and recipe) is skipped and reported in skipped.",
+    { groceryListId: list, items: z.array(product).min(1).max(100) },
+    ({ groceryListId, items }) => umami.groceries.add(groceryListId, items),
+  );
+
+  tool(
+    "update_grocery_items",
+    "Change products on a grocery list",
+    "Changes the name, quantity or aisle of products, or ticks them off (completed: true) or back on (false). Get itemId from get_grocery_list.",
+    {
+      groceryListId: list,
+      items: z
+        .array(
+          z.object({
+            itemId: z.string().min(1),
+            name: z.string().min(1).max(200).optional(),
+            quantity: z.string().max(60).optional().describe("Empty string removes it"),
+            aisle: z.string().max(60).optional().describe("Empty string removes it"),
+            completed: z.boolean().optional(),
+          }),
+        )
+        .min(1)
+        .max(100),
+    },
+    ({ groceryListId, items }) => umami.groceries.update(groceryListId, items),
+  );
+
+  tool(
+    "remove_grocery_items",
+    "Remove products from a grocery list",
+    "Deletes products from a grocery list by itemId (from get_grocery_list).",
+    { groceryListId: list, itemIds: z.array(z.string().min(1)).min(1).max(100) },
+    ({ groceryListId, itemIds }) => umami.groceries.remove(groceryListId, itemIds),
   );
 
   return server;

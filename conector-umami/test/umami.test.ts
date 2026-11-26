@@ -208,3 +208,67 @@ describe("running on Workers", () => {
     await expect(defaults.photos.add("r1", { imageBase64: btoa("x") })).rejects.toThrow(/JPEG, PNG or WebP/);
   });
 });
+
+describe("grocery lists", () => {
+  // Products as the app writes them: dates as strings here, to check we copy the app's types.
+  const appItem = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
+    mapValue: {
+      fields: {
+        id: { stringValue: id },
+        name: { stringValue: name },
+        created: { stringValue: "2026-11-26T10:11:01.854Z" },
+        updated: { stringValue: "2026-11-26T10:11:01.854Z" },
+        ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, { stringValue: String(v) }])),
+      },
+    },
+  });
+  beforeEach(() => {
+    fake.put(UMAMI.collections.groceries, "list1", {
+      id: toWire("list1"),
+      name: toWire("Compra ChatiChef"),
+      ownerId: toWire(UID),
+      members: toWire({ [UID]: { id: UID, displayName: "Me" } }),
+      groceries: {
+        arrayValue: {
+          values: [appItem("a1", "Prueba", { completed: "2026-11-26T11:00:43.381Z" }), appItem("a2", "Sal al gusto", { aisle: "Especias", recipeId: "r1", recipeName: "Tortilla" })],
+        },
+      },
+      updated: { stringValue: "2026-11-26T11:01:47.466Z" },
+    });
+  });
+
+  it("lists lists and products", async () => {
+    expect(await umami.groceries.lists()).toEqual([{ id: "list1", name: "Compra ChatiChef", members: ["Me"], itemCount: 2, toBuy: 1 }]);
+    const { items } = await umami.groceries.items("compra chatichef");
+    expect(items[0]).toMatchObject({ id: "a1", name: "Prueba", completed: true });
+    expect(items[1]).toMatchObject({ name: "Sal al gusto", aisle: "Especias", recipeName: "Tortilla", completed: false });
+  });
+
+  it("adds products in the app's format and skips ones already pending", async () => {
+    const r = await umami.groceries.add(undefined, [
+      { name: "Huevos", quantity: "1 docena", aisle: "Huevos y lácteos" },
+      { name: "Sal al gusto", recipeId: "r1", recipeName: "Tortilla" },
+      { name: "Prueba" },
+    ]);
+    expect(r.added.map((a) => a.name)).toEqual(["Huevos", "Prueba"]);
+    expect(r.skipped).toEqual(["Sal al gusto"]);
+    const values = (fake.field(UMAMI.collections.groceries, "list1", "groceries") as any).arrayValue.values;
+    expect(values).toHaveLength(4);
+    expect(values[0]).toEqual(appItem("a1", "Prueba", { completed: "2026-11-26T11:00:43.381Z" }));
+    expect(values[2].mapValue.fields.created).toHaveProperty("stringValue");
+    expect(values[2].mapValue.fields.quantity).toEqual({ stringValue: "1 docena" });
+    expect(fake.field(UMAMI.collections.groceries, "list1", "updated")).toHaveProperty("stringValue");
+  });
+
+  it("ticks, edits and removes products", async () => {
+    await umami.groceries.update(undefined, [{ itemId: "a2", completed: true, quantity: "1 pizca" }, { itemId: "a1", completed: false }]);
+    let { items } = await umami.groceries.items();
+    expect(items.find((i) => i.id === "a2")).toMatchObject({ completed: true, quantity: "1 pizca" });
+    expect(items.find((i) => i.id === "a1")!.completed).toBe(false);
+    const r = await umami.groceries.remove(undefined, ["a1", "nope"]);
+    expect(r.removed.map((x) => x.name)).toEqual(["Prueba"]);
+    expect(r.missing).toEqual(["nope"]);
+    ({ items } = await umami.groceries.items());
+    expect(items.map((i) => i.id)).toEqual(["a2"]);
+  });
+});

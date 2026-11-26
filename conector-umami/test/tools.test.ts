@@ -32,22 +32,27 @@ beforeAll(() => {
 });
 
 describe("MCP tools over HTTP", () => {
-  it("offers the same tool names as before, plus remove_meal_plan_item", async () => {
+  it("offers the recipe, meal plan and grocery tools", async () => {
     await call("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "1" } });
     const { result } = await call("tools/list");
     expect(result.tools.map((t: any) => t.name).sort()).toEqual(
       [
+        "add_grocery_items",
         "add_meal_plan_item",
         "add_recipe_photo",
         "create_recipe",
         "edit_recipe",
         "find_recipes",
+        "get_grocery_list",
         "get_meal_plan_items",
         "get_recipe",
+        "list_grocery_lists",
         "list_meal_plans",
         "list_recipe_books",
         "list_recipe_tags",
+        "remove_grocery_items",
         "remove_meal_plan_item",
+        "update_grocery_items",
         "update_meal_plan_item",
       ].sort(),
     );
