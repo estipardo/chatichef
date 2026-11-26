@@ -9,7 +9,7 @@ Lo que lo hace distinto de pedirle recetas a un chat:
 - **Aprovechamiento**: pregunta qué te ha sobrado y cuánto, coloca primero lo abierto y lo descongelado, y la compra pasa a ser de reposición.
 - **Recetas para nivel básico**: un paso por acción, la señal visible de "ya está hecho" y los errores típicos.
 - **Tablero en el móvil** (opcional): menú, despensa, compra y notas, sincronizado con Claude.
-- **Umami** (opcional): guarda las recetas confirmadas en tu recetario y en el plan de comidas.
+- **Umami** (opcional): guarda las recetas confirmadas en tu recetario y en el plan de comidas, con un conector propio incluido en este repositorio.
 
 ## Qué hay aquí
 
@@ -23,6 +23,7 @@ Lo que lo hace distinto de pedirle recetas a un chat:
 | `skills/chatichef-guardar-umami` | Skill para guardar las recetas en Umami. |
 | `tablero/` | La página del tablero, para publicarla como artifact. |
 | `docs/` | El botón «Pedir el menú» del tablero y su tarea programada. |
+| `conector-umami/` | Conector MCP para Umami Recipes (recetario y plan de comidas), listo para desplegar en Cloudflare. |
 
 ## Cómo montarlo
 
@@ -32,7 +33,7 @@ Lo que lo hace distinto de pedirle recetas a un chat:
 4. **Perfil de la calculadora**: copia `skills/chatichef-nutricion/scripts/perfil.ejemplo.json` como `perfil.json` en la misma carpeta y pon tus prohibidos y tu listón. Los ids son los de la tabla del script (`python3 chatichef_nutricion.py --lista`).
 5. **Skills**: comprime cada carpeta de `skills/` en un `.zip` (o ejecuta `./empaquetar-skills.sh`) y súbelas como skills en Claude. Si no usas el tablero o Umami, sube solo `chatichef-nutricion`.
 6. **Tablero** (opcional): sigue `tablero/README.md`.
-7. **Umami** (opcional): necesitas un conector MCP de [Umami Recipes](https://www.umami.recipes/), por ejemplo [umami-recipes-mcp](https://github.com/Joshlucpoll/umami-recipes-mcp). La skill usa las herramientas de recetario y de plan de comidas.
+7. **Umami** (opcional): despliega el conector de `conector-umami/` siguiendo su README y añádelo a Claude. La skill `chatichef-guardar-umami` usa sus herramientas de recetario y de plan de comidas.
 
 Luego, en un chat del proyecto: «Hazme el menú de esta semana». Te preguntará qué comidas cubre, qué días coméis fuera y qué te ha sobrado.
 

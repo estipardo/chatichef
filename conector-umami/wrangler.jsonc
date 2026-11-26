@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "umami-mcp",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Wrangler creates this KV namespace on the first deploy. It holds the
+  // OAuth grants (each with an encrypted Umami refresh token).
+  "kv_namespaces": [{ "binding": "OAUTH_KV" }],
+  // ALLOWED_EMAILS is a secret: set it in the Cloudflare dashboard or with
+  // `npx wrangler secret put ALLOWED_EMAILS`.
+  // Logs are off so no recipe or account data is kept by Cloudflare.
+  "observability": { "enabled": false }
+}

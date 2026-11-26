@@ -1,6 +1,6 @@
 ---
 name: chatichef-guardar-umami
-description: "ChatiChef: úsala en cuanto el usuario confirme que está de acuerdo con las recetas (las de la semana o una suelta), y cada vez que cambie, mueva o quite una receta ya confirmada. Guarda cada receta en el recetario de Umami (sin crear duplicados) con su nombre, etiquetas, tiempos, kcal y notas, y la pone en el plan de comidas en la fecha y la franja exactas. Antes de que el usuario confirme no se guarda nada. Necesita el conector umami-recipes-mcp."
+description: "ChatiChef: úsala en cuanto el usuario confirme que está de acuerdo con las recetas (las de la semana o una suelta), y cada vez que cambie, mueva o quite una receta ya confirmada. Guarda cada receta en el recetario de Umami (sin crear duplicados) con su nombre, etiquetas, tiempos, kcal y notas, y la pone en el plan de comidas en la fecha y la franja exactas. Antes de que el usuario confirme no se guarda nada. Necesita el conector de conector-umami/."
 ---
 
 # Guardar las recetas confirmadas en Umami
@@ -28,7 +28,7 @@ Pon aquí los nombres que usas en Umami (los ids se buscan solos):
 - `recipeBookId`: con `list_recipe_books`, por el nombre exacto del recetario. Ahí van todas las recetas, también los postres.
 - `mealPlanId`: con `list_meal_plans`, por el nombre exacto del plan. Pásalo siempre.
 - Franjas del plan: **comida = `LUNCH`** · **cena = `DINNER`**. Los postres no van al plan.
-- **Limitaciones conocidas del conector**: `find_recipes` con `tags` puede dar error 400 (busca por `query` de texto y filtra tú por etiquetas); el plan **no tiene borrar** (solo `add_meal_plan_item` y `update_meal_plan_item`).
+- `find_recipes` acepta `tags` (todas deben coincidir) y `query`. El plan se cambia con `add_meal_plan_item`, `update_meal_plan_item` y `remove_meal_plan_item`.
 
 ## Paso 0. Tabla de lo que se va a guardar
 
@@ -94,7 +94,7 @@ Por cada receta:
 - **Otro día u otro turno**: `update_meal_plan_item` (nueva `date` y/o `meal`) **y** cambia las etiquetas de día y turno de la receta.
 - **Otra receta en ese hueco**: guarda la nueva y apunta la entrada del plan a ella. Si la vieja ya no se usa, quítale las etiquetas de esta semana.
 - **Otra cantidad u otra versión de la misma receta**: `edit_recipe` de la misma; nunca una segunda receta.
-- **Un plato cae y no tiene a dónde ir**: el plan no deja borrar. **Di exactamente qué entrada borrar en la app**: «Plan Comidas y Cenas → jueves 19, cena: “Pollo al chilindrón”».
+- **Un plato cae y no tiene a dónde ir**: quita su entrada con `remove_meal_plan_item` y dilo en la línea final.
 - Si usas el tablero, mantenlo en paralelo (skill `chatichef-tablero`).
 
 ## Comprobación final (obligatoria)
